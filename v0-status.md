@@ -66,7 +66,7 @@
 
 | # | Étape | Statut | Démarrage | Fin | Critère de sortie | Notes |
 |---|-------|--------|-----------|-----|-------------------|-------|
-| 1.1 | Refactor patterns en classes `Pattern` (schema Pydantic, `apply`, `validate`, `get_test_cases`) | 🟡 en cours | 2026-04-29 | — | Tous les patterns de 0.6 passent par cette interface | 1.1a ✅ (16 tests) · 1.1b ✅ (25 tests, extensions models + adapter) · 1.1c en cours (intégration solveur) · 1.1d à venir |
+| 1.1 | Refactor patterns en classes `Pattern` (schema Pydantic, `apply`, `validate`, `get_test_cases`) | 🟡 en cours | 2026-04-29 | — | Tous les patterns de 0.6 passent par cette interface | 1.1a ✅ · 1.1b ✅ · 1.1c ✅ (solveur intègre tous les patterns conditionnellement, 168 tests passent en 124s) · 1.1d en cours (stress test full patterns + comparaison perf) |
 | 1.2 | Objectif composite (makespan + tardiness + stability) | ⬜ à faire | — | — | Solveur accepte priorités relatives utilisateur | — |
 | 1.3 | Calibration dynamique des poids (pré-résolution + normalisation) | ⬜ à faire | — | — | Sur 10 instances : aucun terme n'écrase les autres | — |
 | 1.4 | Replanification incrémentale (freeze partiel + solution hint) | ⬜ à faire | — | — | Re-solve < 30% du temps initial sur petites perturbations | — |
