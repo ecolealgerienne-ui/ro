@@ -24,7 +24,7 @@
 
 | Phase | Intitulé | Statut global | Démarrage | Fin |
 |-------|----------|---------------|-----------|-----|
-| 0 | Validation OR-Tools (go/no-go projet) | 🟡 en cours | 2026-04-29 | — |
+| 0 | Validation OR-Tools (go/no-go projet) | ✅ stabilisée | 2026-04-29 | 2026-04-29 |
 | 1 | Bibliothèque de patterns + objectifs composites | ⬜ à faire | — | — |
 | 2 | Trust layer technique (sans LLM) | ⬜ à faire | — | — |
 | 3 | Agents LLM + serveur MCP | ⬜ à faire | — | — |
@@ -54,7 +54,7 @@
 | 0.4 | Benchmark Taillard ta01-ta41, budget 120s | ✅ stabilisée | 2026-04-29 | 2026-04-29 | **Gap < 5% vs optimum sur 4/5 instances** | **5/5 sous 5%** : ta01 0.00% (OPTIMAL en 2.8s) · ta11 1.03% · ta21 2.62% · ta31 1.19% · ta41 4.24% · gap moyen 1.82% · max 4.24% — Gate 0 part 1 ✓ |
 | 0.5 | Générateur d'ateliers synthétiques (machines, opérateurs, OF, gammes) | ✅ stabilisée | 2026-04-29 | 2026-04-29 | 1 atelier généré < 2s, schéma Pydantic strict | Validé : 1 atelier en 10 ms (200× plus rapide que cible), 100 ateliers en 0.92s (109/sec), reproductibilité par seed confirmée par diff |
 | 0.6 | Patterns avancés : setup sequence-dependent, qualified operator, shared resources, calendars | ✅ stabilisée | 2026-04-29 | 2026-04-29 | Chaque pattern a ses tests unitaires golden | **24 tests golden** · 0.6a setup-dependent (9) · 0.6b operator (6) + shared (4) · 0.6c calendar (5) + extensions générateur (6) |
-| 0.7 | Test intégration générateur → solveur (50-200 OF, 5-25 machines) | 🟡 en cours | 2026-04-29 | — | **Solution faisable < 60s sur 80% des cas** | Gate 0 part 2 — implémentation pipeline E2E + stress test |
+| 0.7 | Test intégration générateur → solveur (50-200 OF, 5-25 machines) | ✅ stabilisée | 2026-04-29 | 2026-04-29 | **Solution faisable < 60s sur 80% des cas** | **30/30 OPTIMAL** en 6s total (mean 0.2s, max 1.6s) sur profils mixed small/medium/large jusqu'à 25 mach × 198 OF (996 ops). Gate 0 part 2 ✓. **Note** : résultat sur JSSP de base sans patterns avancés actifs (setup/operator/shared/calendar) — leur intégration arrive en Phase 1.1, vraie épreuve scale à ce moment. |
 
 **🚦 Gate 0 — décision projet** : si 0.4 ou 0.7 échouent → no-go ou repensage architecture (MiniZinc ? Hexaly ? découpage du problème ?).
 
@@ -201,6 +201,8 @@
 | 2026-04-29 | Convention de commits = Conventional Commits | Lisibilité historique, automatisation possible (changelog) | Tous les commits suivent `<type>(<scope>): <sujet>` |
 | 2026-04-29 | Stratégie de branches = `main` + `dev` + `feat/<phase>.<étape>-<slug>` | Trace par étape `v0-status.md`, PR pour review même solo | À appliquer une fois la branche `claude/create-session-Y481M` mergée |
 | 2026-04-29 | **Gate 0 part 1 ✅ — OR-Tools CP-SAT validé sur Taillard** | Batch ta01/11/21/31/41 budget 120s × 8 workers : 5/5 instances sous 5% de gap, gap moyen 1.82%, max 4.24% (ta41). ta01 résolu à l'optimum prouvé en 2.8s. | Décision : **GO** sur le moteur OR-Tools direct (vs MiniZinc, Hexaly). Le choix structurant `specs-techniques-v3.md §6.1` est confirmé empiriquement. |
+| 2026-04-29 | **Gate 0 part 2 ✅ — Pipeline E2E synthétique scale** | Stress test 30 ateliers (mixed small/medium/large, jusqu'à 25 mach × 198 OF / 996 ops) avec budget 60s : 30/30 OPTIMAL en 6s total, mean 0.2s, max 1.6s. | Décision : **GO** Phase 1. Mais résultat à relativiser : pas de patterns avancés actifs au solving, et adapter pré-assigne les machines par greedy load-balancing (réduit la difficulté combinatoire). La vraie épreuve scale arrive en Phase 1.1+ avec l'intégration des contraintes industrielles. |
+| 2026-04-29 | **Phase 0 ✅ entièrement validée** | 7/7 étapes stabilisées · 116 tests passants en 6s · Gate 0 entièrement franchie | Phase 1 ouverte. Premier chantier prioritaire : refactor patterns en classes (1.1) puis intégration au solveur. |
 
 ---
 

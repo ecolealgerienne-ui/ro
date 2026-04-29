@@ -4,7 +4,7 @@
 > Documente les résultats concrets, décisions techniques et métriques de chaque étape.
 > Mis à jour à chaque étape stabilisée.
 
-**Snapshot : 2026-04-29**
+**Snapshot : 2026-04-29 — Phase 0 entièrement validée**
 
 ---
 
@@ -12,11 +12,11 @@
 
 | Indicateur | Valeur |
 |------------|--------|
-| Phase courante | 0 — Validation OR-Tools (go/no-go projet) |
-| Étapes Phase 0 stabilisées | **6/7** (0.1 ✅ · 0.2 ✅ · 0.3 ✅ · 0.4 ✅ · 0.5 ✅ · 0.6 ✅ · 0.7 ⬜) |
-| Gates franchies | **Gate 0 part 1 ✅** (benchmark Taillard) — Gate 0 part 2 en attente (étape 0.7) |
-| Tests automatisés | **100 passants** (5.16s exécution complète) |
-| Décision projet | **GO** — OR-Tools CP-SAT validé sur Taillard avec marge confortable |
+| Phase courante | 0 — Validation OR-Tools — **TERMINÉE ✅** |
+| Étapes Phase 0 stabilisées | **7/7** (0.1 ✅ · 0.2 ✅ · 0.3 ✅ · 0.4 ✅ · 0.5 ✅ · 0.6 ✅ · 0.7 ✅) |
+| Gates franchies | **Gate 0 part 1 ✅** (benchmark Taillard) · **Gate 0 part 2 ✅** (stress test E2E) |
+| Tests automatisés | **116 passants** (6.01s exécution complète) |
+| Décision projet | **GO Phase 1** — OR-Tools CP-SAT validé empiriquement, fondations solides |
 
 ---
 
@@ -191,6 +191,51 @@
 
 ---
 
+## Étape 0.7 — Pipeline E2E + stress test — Gate 0 part 2
+
+**Objectif** : valider que la chaîne `générateur → adaptateur → solveur → validation` tient un taux de feasibility ≥ 80 % en moins de 60 s sur des ateliers représentatifs (50-200 OF, 5-25 machines).
+
+**Livrables**
+- `src/loaders/synthetic_adapter.py` — `synthetic_to_jssp_instance()` convertit un `SyntheticWorkshop` en `WorkshopInstance` JSSP via greedy load-balancing
+- `tests/test_synthetic_adapter.py` — 10 tests (préservation jobs/machines/durées, compatibilité, équilibrage, métadonnées)
+- `tests/test_integration.py` — 6 tests E2E (small 5×10, medium 10×30, validation contraintes, slow 15×80)
+- `scripts/stress_test_synthetic.py` — CLI Click + Rich avec profils small/medium/large/mixed, exit code = 2 si feasibility < 80%
+
+**Critère de sortie (Gate 0 part 2)** : feasibility ≥ 80% en < 60s sur 30 ateliers mixed.
+
+**Résultats stress test** (30 ateliers, profil mixed, budget 60s, 8 workers)
+
+| Métrique | Valeur |
+|----------|--------|
+| Feasibility < budget | **30/30 (100 %)** |
+| OPTIMAL | **30/30** |
+| Schedules valides | **30/30** |
+| Temps moyen | 0.2 s |
+| Temps max | 1.6 s |
+| Plus grosse instance résolue | 25 machines × 198 OF (996 ops) |
+
+**Verdict — Gate 0 part 2 ✅ PASSÉE LARGEMENT**
+
+> Toutes les instances générées (jusqu'à ~1000 opérations) résolues à
+> l'optimum prouvé en < 2 s. La pipeline est ~600× plus rapide que ce qu'on
+> observe sur les benchmarks Taillard de taille comparable.
+
+### ⚠️ Mise en perspective honnête du résultat
+
+Cet écart de performance s'explique par des choix de scope volontaires et acceptables pour un POC :
+
+1. **L'adaptateur greedy load-balancing pré-résout 50 % du problème combinatoire** — chaque opération est assignée à la machine compatible la moins chargée AVANT le solveur. Le CP-SAT n'a plus qu'à séquencer dans le temps, pas à choisir les machines (ce que fait le JSSP académique pur).
+
+2. **Patterns avancés non actifs au solving** — `add_no_overlap_with_setup`, `add_qualified_operator_constraint`, `add_shared_resource_exclusion`, `make_unavailable_intervals` sont unit-testés (étape 0.6) mais pas encore intégrés au pipeline `JSSPSolver.solve()`. Leur intégration est planifiée en Phase 1.1 (refactor `Pattern` OOP).
+
+3. **Pas de matière/famille modélisée comme contrainte** — les coûts de transition entre familles seraient les premiers à dégrader la perf.
+
+**Implication** : la vraie épreuve scale arrivera en Phase 1.1+. À ce moment, viser 80 % de feasibility deviendra un objectif sérieux, pas une formalité. Les 30/30 OPTIMAL en 6 s sont à interpréter comme : **les fondations sont solides, le solveur a beaucoup de marge pour absorber la complexité supplémentaire des patterns industriels**.
+
+**Statut** : ✅ stabilisée le 2026-04-29.
+
+---
+
 ## Métriques cumulées Phase 0 (au 2026-04-29)
 
 ### Tests automatisés
@@ -204,7 +249,9 @@
 | `test_solver.py` | 8 | JSSPSolver + validate_schedule + smoke ta01 |
 | `test_benchmark_runner.py` | 9 | BenchmarkRecord + run_one/batch + CSV roundtrip |
 | `test_generator.py` | 26 | Reproductibilité + bornes + cohérence + perf + extensions 0.6c |
-| **Total** | **100** | **5.16 s exécution complète** |
+| `test_synthetic_adapter.py` | 10 | Adaptateur SyntheticWorkshop → WorkshopInstance |
+| `test_integration.py` | 6 | Pipeline E2E + slow test 15×80 |
+| **Total** | **116** | **6.01 s exécution complète** |
 
 ### Code livré (estimation)
 
@@ -261,26 +308,24 @@
 
 ## Prochaines étapes
 
-### Étape 0.7 — Test intégration générateur → solveur (**Gate 0 part 2**)
+### Phase 1 — Bibliothèque de patterns + objectifs composites (en attente)
 
-**Critère de sortie** : solution faisable < 60 s sur ≥ 80 % des cas (50-200 OF, 5-25 machines).
+Phase 0 ✅ → Phase 1 ouverte.
 
-Périmètre prévu :
-- Adaptateur `SyntheticWorkshop` → `WorkshopInstance` JSSP
-- Pipeline E2E : génération → solving → validation
-- Stress test sur 30-50 ateliers générés
-- Mesures : taux de réussite, distribution des temps, distribution des makespans
+| # | Étape | Notes |
+|---|-------|-------|
+| 1.1 | Refactor patterns en classes `Pattern` | **Prioritaire** — intègre les 4 patterns avancés au pipeline solving (ce qui n'est pas encore fait) |
+| 1.2 | Objectif composite (makespan + tardiness + stability) | Multi-objectif |
+| 1.3 | Calibration dynamique des poids | Normalisation pré-résolution |
+| 1.4 | Replanification incrémentale | Freeze partiel + solution hint CP-SAT |
+| 1.5 | Stabilité pondérée par criticité Tier 1/2/3 | Métier |
+| 1.6 | Soft constraints en pénalités (interface programmatique) | Avant l'arrivée du LLM (Phase 3) |
+| 1.7 | Clustering automatique des familles de pièces | Réduit matrice 100×100 → 15×15 |
+| 1.8 | Extraction MIS + actions correctives déterministes | Trust layer (pré-LLM) |
 
-### Phase 1 — Bibliothèque de patterns + objectifs composites
+### Évaluation continue
 
-Démarre après 0.7 stabilisée. Inclut :
-- Refactor patterns en classes `Pattern` (1.1)
-- Objectifs composites + calibration dynamique (1.2-1.3)
-- Replanification incrémentale (1.4)
-- Stabilité pondérée par criticité (1.5)
-- Soft constraints en pénalités (1.6)
-- Clustering automatique des familles (1.7)
-- Extraction MIS et infaisabilité (1.8)
+À chaque étape Phase 1, refaire tourner `stress_test_synthetic.py` pour mesurer comment l'ajout des contraintes industrielles dégrade la performance et le taux de feasibility. C'est le vrai stress test scale.
 
 ---
 
