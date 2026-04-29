@@ -206,3 +206,62 @@ def test_output_metadata_has_expected_keys() -> None:
     workshop = generate_workshop(params)
     expected_keys = {"seed", "n_machines", "n_operators", "n_jobs", "planning_horizon_days", "generator_version"}
     assert expected_keys <= set(workshop.metadata.keys())
+
+
+# ---------- Extensions 0.6c : calendrier + ressources partagées ----------
+
+
+def test_workshop_has_default_calendar() -> None:
+    params = GenerationParams(seed=42)
+    workshop = generate_workshop(params)
+    assert workshop.calendar is not None
+    assert workshop.calendar.daily_work_minutes == 480
+    assert workshop.calendar.n_shifts == 1
+    assert workshop.calendar.days_per_week == 5
+    assert workshop.calendar.total_minutes_per_day == 480
+
+
+def test_workshop_calendar_respects_custom_params() -> None:
+    params = GenerationParams(seed=42, daily_work_minutes=420, n_shifts=2, days_per_week=6)
+    workshop = generate_workshop(params)
+    assert workshop.calendar is not None
+    assert workshop.calendar.daily_work_minutes == 420
+    assert workshop.calendar.n_shifts == 2
+    assert workshop.calendar.total_minutes_per_day == 840
+
+
+def test_no_shared_resource_when_probability_zero() -> None:
+    params = GenerationParams(seed=42, shared_resource_probability=0.0)
+    workshop = generate_workshop(params)
+    assert workshop.shared_resources == []
+
+
+def test_shared_resource_injected_when_probability_one() -> None:
+    """Avec proba=1.0, une ressource partagée est toujours injectée."""
+    params = GenerationParams(
+        seed=42,
+        shared_resource_probability=1.0,
+        n_machines_min=10,
+        n_machines_max=10,
+    )
+    workshop = generate_workshop(params)
+    assert len(workshop.shared_resources) == 1
+    res = workshop.shared_resources[0]
+    assert 2 <= len(res.machine_ids) <= 4
+    assert res.max_concurrent >= 1
+    assert res.max_concurrent < len(res.machine_ids)
+    machine_ids = {m.machine_id for m in workshop.machines}
+    assert all(mid in machine_ids for mid in res.machine_ids)
+
+
+def test_shared_resource_reproducible_with_seed() -> None:
+    params = GenerationParams(seed=42, shared_resource_probability=1.0, n_machines_min=10, n_machines_max=10)
+    w1 = generate_workshop(params)
+    w2 = generate_workshop(params)
+    assert w1.model_dump_json() == w2.model_dump_json()
+
+
+def test_shared_resource_count_in_metadata() -> None:
+    params = GenerationParams(seed=42, shared_resource_probability=1.0, n_machines_min=10, n_machines_max=10)
+    workshop = generate_workshop(params)
+    assert workshop.metadata["n_shared_resources"] == len(workshop.shared_resources)

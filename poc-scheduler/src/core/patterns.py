@@ -251,3 +251,41 @@ def add_shared_resource_exclusion(
         return  # contrainte trivialement satisfaite
     demands = [1] * len(intervals)
     model.add_cumulative(list(intervals), demands, max_concurrent)
+
+
+def make_unavailable_intervals(
+    model: Any,
+    periods: Sequence[tuple[int, int]],
+    *,
+    name_prefix: str = "unavail",
+) -> list[Any]:
+    """Crée des intervals fixes représentant des plages d'indisponibilité.
+
+    Les intervals retournés peuvent être passés à `add_no_overlap_machine` (ou
+    fusionnés avec les intervals d'opérations dans un même `add_no_overlap`)
+    pour interdire au solveur de planifier pendant ces périodes.
+
+    Cas typiques : pauses, weekends, maintenance préventive, opérateur en congés.
+
+    Args:
+        model: `cp_model.CpModel`.
+        periods: Liste de couples (start, end) en unités de temps. Chaque
+            période représente une indisponibilité ; `start < end` requis.
+        name_prefix: Préfixe des noms de variables.
+
+    Returns:
+        Liste d'`IntervalVar` fixes, prêts à être ajoutés à un `add_no_overlap`.
+
+    Raises:
+        ValueError: Si une période a `start >= end` ou des bornes négatives.
+    """
+    intervals: list[Any] = []
+    for k, (start, end) in enumerate(periods):
+        if start < 0 or end < 0:
+            raise ValueError(f"Période {k} : bornes négatives ({start}, {end})")
+        if start >= end:
+            raise ValueError(f"Période {k} : start ({start}) doit être < end ({end})")
+        s_var = model.new_int_var(start, start, f"{name_prefix}_{k}_s")
+        e_var = model.new_int_var(end, end, f"{name_prefix}_{k}_e")
+        intervals.append(model.new_interval_var(s_var, end - start, e_var, f"{name_prefix}_{k}_i"))
+    return intervals

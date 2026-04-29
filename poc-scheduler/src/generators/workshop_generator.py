@@ -57,6 +57,17 @@ class GenerationParams(BaseModel):
     machine_types_distribution: dict[str, float] | None = None
     materials_distribution: dict[str, float] | None = None
 
+    # Calendrier (mode simple : 1 équipe, 8h/jour, 5 jours)
+    daily_work_minutes: int = Field(default=480, ge=1)  # 8 h
+    n_shifts: int = Field(default=1, ge=1, le=3)
+    days_per_week: int = Field(default=5, ge=1, le=7)
+
+    # Ressources partagées (aspiration, alim 400V) — proba d'injection à la génération
+    shared_resource_probability: float = Field(default=0.0, ge=0.0, le=1.0)
+    shared_resource_min_machines: int = Field(default=2, ge=2)
+    shared_resource_max_machines: int = Field(default=4, ge=2)
+    shared_resource_max_concurrent: int = Field(default=2, ge=1)
+
     seed: int = 42
 
     @model_validator(mode="after")
@@ -112,6 +123,30 @@ class SyntheticOrder(BaseModel):
     operations: list[SyntheticOperation]
 
 
+class SharedResource(BaseModel):
+    """Ressource physique partagée par plusieurs machines (aspiration, 400V, espace)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    resource_name: str
+    machine_ids: list[int]
+    max_concurrent: int = Field(..., ge=1)
+
+
+class WorkCalendar(BaseModel):
+    """Calendrier de travail simple : durée d'équipe × nb équipes × jours/sem."""
+
+    model_config = ConfigDict(frozen=True)
+
+    daily_work_minutes: int = Field(..., ge=1)
+    n_shifts: int = Field(..., ge=1, le=3)
+    days_per_week: int = Field(..., ge=1, le=7)
+
+    @property
+    def total_minutes_per_day(self) -> int:
+        return self.daily_work_minutes * self.n_shifts
+
+
 class SyntheticWorkshop(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -119,6 +154,8 @@ class SyntheticWorkshop(BaseModel):
     machines: list[SyntheticMachine]
     operators: list[SyntheticOperator]
     orders: list[SyntheticOrder]
+    shared_resources: list[SharedResource] = Field(default_factory=list)
+    calendar: WorkCalendar | None = None
 
 
 # ---------- Génération ----------
@@ -148,13 +185,21 @@ def generate_workshop(params: GenerationParams) -> SyntheticWorkshop:
         material_dist=material_dist,
     )
 
+    shared_resources = _maybe_generate_shared_resources(rng, machines, params)
+    calendar = WorkCalendar(
+        daily_work_minutes=params.daily_work_minutes,
+        n_shifts=params.n_shifts,
+        days_per_week=params.days_per_week,
+    )
+
     metadata: dict[str, str | int] = {
         "seed": params.seed,
         "n_machines": n_machines,
         "n_operators": n_operators,
         "n_jobs": n_jobs,
+        "n_shared_resources": len(shared_resources),
         "planning_horizon_days": params.planning_horizon_days,
-        "generator_version": "0.5",
+        "generator_version": "0.6c",
     }
 
     return SyntheticWorkshop(
@@ -162,6 +207,8 @@ def generate_workshop(params: GenerationParams) -> SyntheticWorkshop:
         machines=machines,
         operators=operators,
         orders=orders,
+        shared_resources=shared_resources,
+        calendar=calendar,
     )
 
 
@@ -319,3 +366,50 @@ def _sample_duration(rng: Generator, op_type: str, material_multiplier: float) -
     mu = float(np.log(mean) - 0.5 * sigma**2)
     sample = float(rng.lognormal(mu, sigma))
     return max(1, int(round(sample)))
+
+
+# ---------- Génération des ressources partagées ----------
+
+
+_SHARED_RESOURCE_NAMES: tuple[str, ...] = (
+    "aspiration_zone_A",
+    "aspiration_zone_B",
+    "alimentation_400V_zone_A",
+    "alimentation_400V_zone_B",
+    "fluide_coupe_central",
+)
+
+
+def _maybe_generate_shared_resources(
+    rng: Generator,
+    machines: list[SyntheticMachine],
+    params: GenerationParams,
+) -> list[SharedResource]:
+    """Injecte 0 ou 1 ressource partagée selon `shared_resource_probability`.
+
+    Si tirage positif, sélectionne aléatoirement entre `min_machines` et
+    `max_machines` parmi celles disponibles, et fixe `max_concurrent`.
+
+    Returns:
+        Liste de `SharedResource` (vide si pas d'injection ou pas assez de
+        machines pour respecter les bornes).
+    """
+    if params.shared_resource_probability <= 0.0:
+        return []
+    if float(rng.random()) >= params.shared_resource_probability:
+        return []
+    if len(machines) < params.shared_resource_min_machines:
+        return []
+
+    upper = min(params.shared_resource_max_machines, len(machines))
+    n_concerned = int(rng.integers(params.shared_resource_min_machines, upper + 1))
+    chosen_ids = sorted(rng.choice([m.machine_id for m in machines], size=n_concerned, replace=False).tolist())
+    name = str(rng.choice(_SHARED_RESOURCE_NAMES))
+    max_concurrent = min(params.shared_resource_max_concurrent, max(1, n_concerned - 1))
+    return [
+        SharedResource(
+            resource_name=name,
+            machine_ids=[int(x) for x in chosen_ids],
+            max_concurrent=max_concurrent,
+        )
+    ]

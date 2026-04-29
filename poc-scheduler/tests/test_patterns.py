@@ -496,3 +496,83 @@ def test_shared_resource_rejects_zero_capacity() -> None:
     i = model.new_interval_var(s, 3, e, "i")
     with pytest.raises(ValueError, match="≥ 1"):
         add_shared_resource_exclusion(model, [i], max_concurrent=0)
+
+
+# ----- make_unavailable_intervals -----
+
+
+def test_unavailable_blocks_operation_in_period() -> None:
+    """1 op de durée 5, machine indispo [3, 8] → op doit démarrer ≥ 8 ou finir ≤ 3.
+
+    Comme la durée est 5, ne peut pas finir avant 3 (impossible : 0+5=5>3).
+    Donc doit démarrer à 8, finir à 13.
+    """
+    from src.core.patterns import add_no_overlap_machine, make_unavailable_intervals
+
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 100, "s")
+    e = model.new_int_var(0, 100, "e")
+    op_interval = model.new_interval_var(s, 5, e, "op")
+    unavail = make_unavailable_intervals(model, [(3, 8)])
+    add_no_overlap_machine(model, [op_interval, *unavail])
+    model.minimize(e)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == 13
+    assert int(solver.value(s)) == 8
+
+
+def test_unavailable_short_op_can_fit_before() -> None:
+    """1 op de durée 2, machine indispo [3, 8] → op tient en [0, 2] ou [1, 3]."""
+    from src.core.patterns import add_no_overlap_machine, make_unavailable_intervals
+
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 100, "s")
+    e = model.new_int_var(0, 100, "e")
+    op_interval = model.new_interval_var(s, 2, e, "op")
+    unavail = make_unavailable_intervals(model, [(3, 8)])
+    add_no_overlap_machine(model, [op_interval, *unavail])
+    model.minimize(e)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == 2
+
+
+def test_unavailable_multiple_periods_squeeze_op() -> None:
+    """1 op durée 5, indispos [3, 8] et [13, 18] → doit tenir entre 8 et 13."""
+    from src.core.patterns import add_no_overlap_machine, make_unavailable_intervals
+
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 100, "s")
+    e = model.new_int_var(0, 100, "e")
+    op_interval = model.new_interval_var(s, 5, e, "op")
+    unavail = make_unavailable_intervals(model, [(3, 8), (13, 18)])
+    add_no_overlap_machine(model, [op_interval, *unavail])
+    model.minimize(e)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == 13
+    assert int(solver.value(s)) == 8
+
+
+def test_unavailable_empty_list_returns_empty() -> None:
+    from src.core.patterns import make_unavailable_intervals
+
+    model = cp_model.CpModel()
+    intervals = make_unavailable_intervals(model, [])
+    assert intervals == []
+
+
+def test_unavailable_rejects_invalid_period() -> None:
+    from src.core.patterns import make_unavailable_intervals
+
+    model = cp_model.CpModel()
+    with pytest.raises(ValueError, match="start.*<.*end"):
+        make_unavailable_intervals(model, [(10, 5)])
+    with pytest.raises(ValueError, match="start.*<.*end"):
+        make_unavailable_intervals(model, [(5, 5)])
+    with pytest.raises(ValueError, match="négatives"):
+        make_unavailable_intervals(model, [(-1, 5)])
