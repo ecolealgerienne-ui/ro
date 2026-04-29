@@ -1,0 +1,106 @@
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# ---------- IDE ----------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# ---------- Secrets / environnement ----------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.cert
+secrets/
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+*.egg-info/
+*.egg
+dist/
+build/
+.ipynb_checkpoints/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# uv
+.uv/
+uv.lock.local
+
+# ---------- Node / JS / TS ----------
+node_modules/
+.next/
+out/
+.nuxt/
+.cache/
+.parcel-cache/
+.turbo/
+.svelte-kit/
+*.tsbuildinfo
+.npm/
+.yarn/
+.pnp.*
+
+# ---------- Logs ----------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ---------- Données (générées / téléchargées) ----------
+# Affinage par sous-projet via .gitignore local
+data/
+
+# ---------- Bases locales ----------
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite3-journal
+
+# ---------- Build / coverage ----------
+coverage/
+*.lcov
+.nyc_output/
+
+# ---------- Docker / runtime ----------
+*.pid
+*.seed
+*.pid.lock
+
+# ---------- Divers ----------
+.tmp/
+tmp/
+.DS_Store?

@@ -196,7 +196,11 @@
 
 | Date | Décision | Contexte | Impact |
 |------|----------|----------|--------|
-| — | — | — | — |
+| 2026-04-29 | Environnement de dev = WSL (Ubuntu) + VSCode Remote | Cohérence avec stack Linux des specs, élimination des soucis CRLF/path | Tous les scripts en bash, paths Unix |
+| 2026-04-29 | Monorepo dans `ro/` avec sous-dossiers par composant | Simplicité solo, refactoring facile, traçabilité E2E | Pas de repo séparé pour `poc-scheduler` |
+| 2026-04-29 | Convention de commits = Conventional Commits | Lisibilité historique, automatisation possible (changelog) | Tous les commits suivent `<type>(<scope>): <sujet>` |
+| 2026-04-29 | Stratégie de branches = `main` + `dev` + `feat/<phase>.<étape>-<slug>` | Trace par étape `v0-status.md`, PR pour review même solo | À appliquer une fois la branche `claude/create-session-Y481M` mergée |
+| 2026-04-29 | Pre-commit hooks via framework `pre-commit` | Standard Python, support multi-langues | Activation effective à l'étape 0.1 (env Python prêt) |
 
 ---
 
