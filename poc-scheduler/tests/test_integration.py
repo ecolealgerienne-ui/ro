@@ -116,3 +116,132 @@ def test_e2e_realistic_workshop_under_60_seconds() -> None:
     )
     errors = validate_schedule(instance, result.schedule)
     assert not errors
+
+
+# ---------- Étape 1.1c : intégration des patterns au solveur ----------
+
+
+def test_e2e_with_full_patterns_active() -> None:
+    """Atelier moyen avec setup + operators + shared resources actifs."""
+    params = GenerationParams(
+        seed=42,
+        n_machines_min=8,
+        n_machines_max=8,
+        n_jobs_min=20,
+        n_jobs_max=20,
+        n_operators_min=4,
+        n_operators_max=4,
+        shared_resource_probability=1.0,
+    )
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop)
+    assert instance.has_setup_constraints
+    assert instance.has_operator_constraints
+    assert instance.has_shared_resources
+    solver = JSSPSolver(time_limit_seconds=30.0, num_workers=4)
+    result = solver.solve(instance)
+    assert result.has_solution, f"Pas de solution avec patterns complets : {result.status}"
+    errors = validate_schedule(instance, result.schedule)
+    assert not errors
+
+
+def test_solver_records_patterns_applied() -> None:
+    """Le SolverResult expose la liste des patterns activés."""
+    params = GenerationParams(seed=42, n_machines_min=5, n_machines_max=5, n_jobs_min=10, n_jobs_max=10)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop)
+    solver = JSSPSolver(time_limit_seconds=10.0, num_workers=2)
+    result = solver.solve(instance)
+    assert "precedence_in_job" in result.patterns_applied
+    assert "no_overlap_machine" in result.patterns_applied
+    assert "makespan_objective" in result.patterns_applied
+    if instance.has_setup_constraints:
+        assert "no_overlap_with_setup" in result.patterns_applied
+    if instance.has_operator_constraints:
+        assert "qualified_operator" in result.patterns_applied
+
+
+def test_solver_skips_patterns_when_disabled() -> None:
+    """Avec adaptateur en mode dégradé, seuls NoOverlap+Precedence+Makespan."""
+    params = GenerationParams(seed=42, n_machines_min=5, n_machines_max=5, n_jobs_min=10, n_jobs_max=10)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(
+        workshop,
+        enable_setup=False,
+        enable_operators=False,
+        enable_shared_resources=False,
+    )
+    solver = JSSPSolver(time_limit_seconds=10.0, num_workers=2)
+    result = solver.solve(instance)
+    assert result.has_solution
+    assert "no_overlap_with_setup" not in result.patterns_applied
+    assert "qualified_operator" not in result.patterns_applied
+    assert "shared_resource_exclusion" not in result.patterns_applied
+
+
+def test_e2e_setup_only_increases_or_equal_makespan() -> None:
+    """Activer setup ne peut pas réduire le makespan vs sans setup."""
+    params = GenerationParams(
+        seed=42, n_machines_min=5, n_machines_max=5, n_jobs_min=15, n_jobs_max=15
+    )
+    workshop = generate_workshop(params)
+
+    instance_no_setup = synthetic_to_jssp_instance(
+        workshop, enable_setup=False, enable_operators=False, enable_shared_resources=False
+    )
+    instance_with_setup = synthetic_to_jssp_instance(
+        workshop, enable_setup=True, enable_operators=False, enable_shared_resources=False
+    )
+    solver = JSSPSolver(time_limit_seconds=20.0, num_workers=4)
+    r1 = solver.solve(instance_no_setup)
+    r2 = solver.solve(instance_with_setup)
+    assert r1.has_solution and r2.has_solution
+    assert r2.makespan is not None and r1.makespan is not None
+    assert r2.makespan >= r1.makespan
+
+
+def test_e2e_with_unavailability() -> None:
+    """Atelier avec une plage d'indisponibilité explicite — solveur la respecte."""
+    from src.core.models import MachineUnavailabilitySpec
+
+    params = GenerationParams(seed=42, n_machines_min=5, n_machines_max=5, n_jobs_min=8, n_jobs_max=8)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop)
+
+    # Bloquer la machine 0 entre 100 et 200
+    enriched = instance.model_copy(
+        update={
+            "machine_unavailability": [
+                MachineUnavailabilitySpec(machine_id=0, periods=[(100, 200)])
+            ]
+        }
+    )
+    solver = JSSPSolver(time_limit_seconds=15.0, num_workers=4)
+    result = solver.solve(enriched)
+    assert result.has_solution
+    # Aucune opération sur M0 ne doit chevaucher [100, 200]
+    for a in result.schedule:
+        if a.machine_id == 0:
+            assert a.end <= 100 or a.start >= 200, (
+                f"Op {(a.job_id, a.sequence_idx)} sur M0 chevauche [100,200] : [{a.start}, {a.end}]"
+            )
+
+
+def test_solve_taillard_still_works_after_refactor() -> None:
+    """Sanity check : les instances JSSP nues (sans champs industriels) restent OK."""
+    from pathlib import Path
+
+    from src.loaders.taillard import load_taillard_instance
+
+    repo_root = Path(__file__).resolve().parent.parent
+    data_dir = repo_root / "data" / "taillard"
+    if not (data_dir / "ta01").exists():
+        pytest.skip("ta01 non téléchargé")
+    instance = load_taillard_instance("ta01", data_dir)
+    assert not instance.has_setup_constraints
+    assert not instance.has_operator_constraints
+    assert not instance.has_shared_resources
+    solver = JSSPSolver(time_limit_seconds=15.0, num_workers=4)
+    result = solver.solve(instance)
+    assert result.has_solution
+    assert result.makespan is not None and result.makespan >= 1231
