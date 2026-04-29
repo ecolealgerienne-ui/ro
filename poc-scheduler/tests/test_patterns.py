@@ -299,3 +299,200 @@ def test_setup_rejects_out_of_range_family_id() -> None:
     e = model.new_int_var(0, 10, "e")
     with pytest.raises(ValueError, match="hors borne"):
         add_no_overlap_with_setup(model, [s, s], [e, e], [0, 5], [[0, 1], [1, 0]])
+
+
+# ----- add_qualified_operator_constraint -----
+
+
+def _build_two_independent_ops(
+    durations: list[int],
+    qualifications: list[list[int]],
+    n_operators: int,
+    horizon: int = 100,
+) -> tuple[cp_model.CpModel, list, list]:
+    """Construit 2 opérations indépendantes (pas de NoOverlap machine)."""
+    from src.core.patterns import add_qualified_operator_constraint
+
+    model = cp_model.CpModel()
+    starts, ends = [], []
+    for k, dur in enumerate(durations):
+        s = model.new_int_var(0, horizon, f"s{k}")
+        e = model.new_int_var(0, horizon, f"e{k}")
+        model.new_interval_var(s, dur, e, f"i{k}")
+        starts.append(s)
+        ends.append(e)
+    add_qualified_operator_constraint(model, starts, ends, durations, qualifications, n_operators)
+    return model, starts, ends
+
+
+def test_single_operator_forces_sequencing() -> None:
+    """2 ops indépendantes (pas même machine) mais 1 seul opérateur qualifié → séquentiel."""
+    durations = [5, 4]
+    qualifications = [[0], [0]]  # seul l'opérateur 0 peut faire les deux
+    n_operators = 1
+    model, _, ends = _build_two_independent_ops(durations, qualifications, n_operators)
+    makespan = model.new_int_var(0, 100, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    # Forcé séquentiel : 5 + 4 = 9
+    assert int(solver.objective_value) == 9
+
+
+def test_two_operators_allow_parallel() -> None:
+    """2 ops indépendantes, 2 opérateurs qualifiés chacun → parallèle possible."""
+    from src.core.patterns import add_qualified_operator_constraint
+
+    durations = [5, 4]
+    qualifications = [[0, 1], [0, 1]]
+    n_operators = 2
+    model = cp_model.CpModel()
+    starts, ends = [], []
+    for k, dur in enumerate(durations):
+        s = model.new_int_var(0, 100, f"s{k}")
+        e = model.new_int_var(0, 100, f"e{k}")
+        model.new_interval_var(s, dur, e, f"i{k}")
+        starts.append(s)
+        ends.append(e)
+    add_qualified_operator_constraint(model, starts, ends, durations, qualifications, n_operators)
+    makespan = model.new_int_var(0, 100, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    # Avec 2 opérateurs, parallélisable → max(5, 4) = 5
+    assert int(solver.objective_value) == 5
+
+
+def test_disjoint_qualifications_force_specific_assignment() -> None:
+    """3 ops indépendantes, qualifications disjointes : op0→opérateur0, op1→opérateur1, op2→opérateur0."""
+    from src.core.patterns import add_qualified_operator_constraint
+
+    durations = [3, 4, 5]
+    qualifications = [[0], [1], [0]]
+    n_operators = 2
+    model = cp_model.CpModel()
+    starts, ends = [], []
+    for k, dur in enumerate(durations):
+        s = model.new_int_var(0, 100, f"s{k}")
+        e = model.new_int_var(0, 100, f"e{k}")
+        model.new_interval_var(s, dur, e, f"i{k}")
+        starts.append(s)
+        ends.append(e)
+    add_qualified_operator_constraint(model, starts, ends, durations, qualifications, n_operators)
+    makespan = model.new_int_var(0, 100, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    # Opérateur 0 fait op0 (3) + op2 (5) = 8 séquentiel
+    # Opérateur 1 fait op1 (4) en parallèle
+    # → makespan = max(8, 4) = 8
+    assert int(solver.objective_value) == 8
+
+
+def test_qualified_operator_validates_lengths() -> None:
+    from src.core.patterns import add_qualified_operator_constraint
+
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 10, "s")
+    e = model.new_int_var(0, 10, "e")
+    with pytest.raises(ValueError, match="même longueur"):
+        add_qualified_operator_constraint(
+            model, [s], [e, e], [5], [[0]], n_operators=1
+        )
+
+
+def test_qualified_operator_rejects_empty_qualifications() -> None:
+    from src.core.patterns import add_qualified_operator_constraint
+
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 10, "s")
+    e = model.new_int_var(0, 10, "e")
+    with pytest.raises(ValueError, match="sans opérateur qualifié"):
+        add_qualified_operator_constraint(model, [s], [e], [3], [[]], n_operators=1)
+
+
+def test_qualified_operator_rejects_out_of_range() -> None:
+    from src.core.patterns import add_qualified_operator_constraint
+
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 10, "s")
+    e = model.new_int_var(0, 10, "e")
+    with pytest.raises(ValueError, match="hors borne"):
+        add_qualified_operator_constraint(model, [s], [e], [3], [[5]], n_operators=2)
+
+
+# ----- add_shared_resource_exclusion -----
+
+
+def _build_n_independent_ops(n: int, duration: int, horizon: int = 100):
+    model = cp_model.CpModel()
+    intervals, ends = [], []
+    for k in range(n):
+        s = model.new_int_var(0, horizon, f"s{k}")
+        e = model.new_int_var(0, horizon, f"e{k}")
+        i = model.new_interval_var(s, duration, e, f"i{k}")
+        intervals.append(i)
+        ends.append(e)
+    return model, intervals, ends
+
+
+def test_shared_resource_capacity_one_serializes_all() -> None:
+    """3 ops, capacité 1 → toutes séquentielles → makespan = 3 × duration."""
+    from src.core.patterns import add_shared_resource_exclusion
+
+    model, intervals, ends = _build_n_independent_ops(n=3, duration=5)
+    add_shared_resource_exclusion(model, intervals, max_concurrent=1)
+    makespan = model.new_int_var(0, 100, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == 15
+
+
+def test_shared_resource_capacity_two_allows_pairs() -> None:
+    """3 ops de durée 5, capacité 2 → 2 en parallèle + 1 reste → makespan = 10."""
+    from src.core.patterns import add_shared_resource_exclusion
+
+    model, intervals, ends = _build_n_independent_ops(n=3, duration=5)
+    add_shared_resource_exclusion(model, intervals, max_concurrent=2)
+    makespan = model.new_int_var(0, 100, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == 10
+
+
+def test_shared_resource_capacity_geq_count_is_noop() -> None:
+    """3 ops, capacité 3 → tous parallèles → makespan = duration."""
+    from src.core.patterns import add_shared_resource_exclusion
+
+    model, intervals, ends = _build_n_independent_ops(n=3, duration=5)
+    add_shared_resource_exclusion(model, intervals, max_concurrent=3)
+    makespan = model.new_int_var(0, 100, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == 5
+
+
+def test_shared_resource_rejects_zero_capacity() -> None:
+    from src.core.patterns import add_shared_resource_exclusion
+
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 10, "s")
+    e = model.new_int_var(0, 10, "e")
+    i = model.new_interval_var(s, 3, e, "i")
+    with pytest.raises(ValueError, match="≥ 1"):
+        add_shared_resource_exclusion(model, [i], max_concurrent=0)

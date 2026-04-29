@@ -156,3 +156,98 @@ def add_no_overlap_with_setup(
             i_before_j = model.new_bool_var(f"{name_prefix}_{i}_before_{j}")
             model.add(starts[j] >= ends[i] + setup_ij).only_enforce_if(i_before_j)
             model.add(starts[i] >= ends[j] + setup_ji).only_enforce_if(i_before_j.Not())
+
+
+def add_qualified_operator_constraint(
+    model: Any,
+    starts: Sequence[Any],
+    ends: Sequence[Any],
+    durations: Sequence[int],
+    qualifications: Sequence[Sequence[int]],
+    n_operators: int,
+    *,
+    name_prefix: str = "qual",
+) -> None:
+    """Force chaque opération à être réalisée par un opérateur qualifié unique,
+    et empêche un opérateur d'être affecté à deux opérations simultanées.
+
+    Modélisation : pour chaque paire (opération, opérateur qualifié), un interval
+    optionnel + une variable de présence. Exactement une présence vraie par
+    opération (`exactly-one-of`). Pour chaque opérateur, un `add_no_overlap`
+    sur ses intervals optionnels.
+
+    Args:
+        model: `cp_model.CpModel`.
+        starts, ends: Variables de début/fin des opérations (mêmes longueurs).
+        durations: Durées entières des opérations (mêmes longueurs).
+        qualifications: Pour chaque opération, la liste des `operator_id`
+            qualifiés (au moins un par opération).
+        n_operators: Nombre total d'opérateurs (operator_id ∈ [0, n_operators[).
+        name_prefix: Préfixe des noms de variables.
+
+    Raises:
+        ValueError: Tailles incohérentes, opérateurs hors borne, ou opération
+            sans aucun opérateur qualifié.
+    """
+    n_ops = len(starts)
+    if not (n_ops == len(ends) == len(durations) == len(qualifications)):
+        raise ValueError(
+            f"starts/ends/durations/qualifications doivent avoir la même longueur, "
+            f"reçu {n_ops}/{len(ends)}/{len(durations)}/{len(qualifications)}"
+        )
+    if n_operators < 0:
+        raise ValueError(f"n_operators doit être ≥ 0, reçu {n_operators}")
+
+    operator_intervals: dict[int, list[Any]] = {k: [] for k in range(n_operators)}
+
+    for i in range(n_ops):
+        qualified = list(qualifications[i])
+        if not qualified:
+            raise ValueError(f"Opération {i} sans opérateur qualifié")
+        if any(k < 0 or k >= n_operators for k in qualified):
+            raise ValueError(
+                f"Opération {i} : operator_id hors borne dans {qualified} "
+                f"(n_operators={n_operators})"
+            )
+
+        presence_vars: list[Any] = []
+        for k in qualified:
+            present = model.new_bool_var(f"{name_prefix}_op{i}_to_op{k}")
+            presence_vars.append(present)
+            opt_interval = model.new_optional_interval_var(
+                starts[i], durations[i], ends[i], present, f"{name_prefix}_int_op{i}_op{k}"
+            )
+            operator_intervals[k].append(opt_interval)
+
+        model.add_exactly_one(presence_vars)
+
+    for k in range(n_operators):
+        if len(operator_intervals[k]) > 1:
+            model.add_no_overlap(operator_intervals[k])
+
+
+def add_shared_resource_exclusion(
+    model: Any,
+    intervals: Sequence[Any],
+    max_concurrent: int,
+) -> None:
+    """Limite le nombre d'opérations actives simultanément sur une ressource partagée.
+
+    Cas typiques : aspiration commune à plusieurs machines, alimentation 400V
+    d'une zone, espace de chargement. Modélisation par `add_cumulative` avec
+    demande unitaire et capacité = `max_concurrent`.
+
+    Args:
+        model: `cp_model.CpModel`.
+        intervals: Tous les intervals des opérations qui consomment la ressource.
+        max_concurrent: Nombre maximum d'opérations actives en même temps (≥ 1).
+
+    Raises:
+        ValueError: Si `max_concurrent < 1`.
+    """
+    if max_concurrent < 1:
+        raise ValueError(f"max_concurrent doit être ≥ 1, reçu {max_concurrent}")
+    if len(intervals) <= max_concurrent:
+        return  # contrainte trivialement satisfaite
+    demands = [1] * len(intervals)
+    model.add_cumulative(list(intervals), demands, max_concurrent)
