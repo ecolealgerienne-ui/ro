@@ -1,0 +1,13 @@
+# Ignorer les fichiers de données téléchargés / générés
+*.txt
+*.json
+*.zip
+*.gz
+*.tar
+*.tgz
+*.parquet
+*.feather
+
+# Les fichiers structurels (.gitkeep, .gitignore, README.md, checksums.md5,
+# instances_metadata.csv) ne matchent aucun pattern ci-dessus, ils sont donc
+# tracés normalement.

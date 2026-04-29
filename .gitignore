@@ -81,8 +81,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # ---------- Données (générées / téléchargées) ----------
-# Affinage par sous-projet via .gitignore local
-data/
+# Anchored à la racine uniquement — chaque sous-projet gère son propre data/ via .gitignore local
+/data/
 
 # ---------- Bases locales ----------
 *.db
