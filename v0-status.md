@@ -53,7 +53,7 @@
 | 0.3 | Solveur JSSP basique (NoOverlap par machine, Precedence, Makespan) | ✅ stabilisée | 2026-04-29 | 2026-04-29 | Mini-cas 3×3 résolu à l'optimum connu | Validé : 41/41 tests, 2×2 → makespan 5 (OPTIMAL), 3×3 OR-Tools → makespan 11 (OPTIMAL), smoke ta01 résolu en < 4s avec makespan ≥ 1231 |
 | 0.4 | Benchmark Taillard ta01-ta41, budget 120s | ✅ stabilisée | 2026-04-29 | 2026-04-29 | **Gap < 5% vs optimum sur 4/5 instances** | **5/5 sous 5%** : ta01 0.00% (OPTIMAL en 2.8s) · ta11 1.03% · ta21 2.62% · ta31 1.19% · ta41 4.24% · gap moyen 1.82% · max 4.24% — Gate 0 part 1 ✓ |
 | 0.5 | Générateur d'ateliers synthétiques (machines, opérateurs, OF, gammes) | ✅ stabilisée | 2026-04-29 | 2026-04-29 | 1 atelier généré < 2s, schéma Pydantic strict | Validé : 1 atelier en 10 ms (200× plus rapide que cible), 100 ateliers en 0.92s (109/sec), reproductibilité par seed confirmée par diff |
-| 0.6 | Patterns avancés : setup sequence-dependent, qualified operator, shared resources, calendars | ⬜ à faire | — | — | Chaque pattern a ses tests unitaires golden | — |
+| 0.6 | Patterns avancés : setup sequence-dependent, qualified operator, shared resources, calendars | 🟡 en cours | 2026-04-29 | — | Chaque pattern a ses tests unitaires golden | Découpé en 0.6a (setup-dependent) → 0.6b (operator + shared) → 0.6c (calendar + générateur). 0.6a en cours. |
 | 0.7 | Test intégration générateur → solveur (50-200 OF, 5-25 machines) | ⬜ à faire | — | — | **Solution faisable < 60s sur 80% des cas** | Gate 0 part 2 |
 
 **🚦 Gate 0 — décision projet** : si 0.4 ou 0.7 échouent → no-go ou repensage architecture (MiniZinc ? Hexaly ? découpage du problème ?).

@@ -11,6 +11,7 @@ from ortools.sat.python import cp_model
 
 from src.core.patterns import (
     add_no_overlap_machine,
+    add_no_overlap_with_setup,
     add_precedence_in_job,
     make_makespan_objective,
 )
@@ -142,3 +143,159 @@ def test_makespan_negative_horizon_raises() -> None:
     e = model.new_int_var(0, 10, "e")
     with pytest.raises(ValueError, match="horizon"):
         make_makespan_objective(model, [e], horizon=-1)
+
+
+# ----- add_no_overlap_with_setup -----
+
+
+def _build_machine_with_setup(
+    durations: list[int],
+    family_ids: list[int],
+    transition_matrix: list[list[int]],
+    horizon: int = 100,
+) -> tuple[cp_model.CpModel, list, list, list]:
+    """Construit un modèle avec n opérations sur une machine + setup."""
+    model = cp_model.CpModel()
+    starts, ends, intervals = [], [], []
+    for k, dur in enumerate(durations):
+        s = model.new_int_var(0, horizon, f"s{k}")
+        e = model.new_int_var(0, horizon, f"e{k}")
+        i = model.new_interval_var(s, dur, e, f"i{k}")
+        starts.append(s)
+        ends.append(e)
+        intervals.append(i)
+    add_no_overlap_with_setup(model, starts, ends, family_ids, transition_matrix)
+    return model, starts, ends, intervals
+
+
+def test_setup_groups_same_family_optimally() -> None:
+    """3 ops, 2 familles A/B, transition de 2.
+
+    op0=A(5), op1=B(3), op2=A(4).
+    Optimum = 14 (regrouper la famille A ou B → un seul changement = 2).
+    Sans setup ce serait 12 ; avec setup mal placé ce serait 16.
+    """
+    durations = [5, 3, 4]
+    family_ids = [0, 1, 0]  # A, B, A
+    transition_matrix = [
+        [0, 2],
+        [2, 0],
+    ]
+    model, _, ends, _ = _build_machine_with_setup(durations, family_ids, transition_matrix)
+    makespan = model.new_int_var(0, 100, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == 14
+
+
+def test_setup_zero_matrix_equals_pure_no_overlap() -> None:
+    """Avec une matrice de transition nulle, le makespan = somme des durées."""
+    durations = [5, 3, 4]
+    family_ids = [0, 1, 0]
+    transition_matrix = [
+        [0, 0],
+        [0, 0],
+    ]
+    model, _, ends, _ = _build_machine_with_setup(durations, family_ids, transition_matrix)
+    makespan = model.new_int_var(0, 100, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == sum(durations)
+
+
+def test_setup_intra_family_zero_inter_family_costly() -> None:
+    """5 ops, 2 familles, transition inter-famille = 10.
+
+    Familles : [A, A, B, B, A]
+    Durées :   [3, 2, 4, 1, 2]
+    Best : grouper A(3+2+2=7) puis B(4+1=5), ou inverse, avec une transition.
+    Optimum = 7+5+10 = 22 (si tout en A puis B, ou inverse).
+    """
+    durations = [3, 2, 4, 1, 2]
+    family_ids = [0, 0, 1, 1, 0]
+    transition_matrix = [
+        [0, 10],
+        [10, 0],
+    ]
+    model, _, ends, _ = _build_machine_with_setup(durations, family_ids, transition_matrix)
+    makespan = model.new_int_var(0, 200, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == 22
+
+
+def test_setup_asymmetric_matrix_picks_cheaper_direction() -> None:
+    """Transitions A→B=10, B→A=2. Optimum = commencer par A puis aller en B.
+
+    op0=A(3), op1=B(4). Si A puis B : 3+10+4 = 17. Si B puis A : 4+2+3 = 9.
+    """
+    durations = [3, 4]
+    family_ids = [0, 1]
+    transition_matrix = [
+        [0, 10],
+        [2, 0],
+    ]
+    model, _, ends, _ = _build_machine_with_setup(durations, family_ids, transition_matrix)
+    makespan = model.new_int_var(0, 100, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == 9
+
+
+def test_setup_singleton_is_noop() -> None:
+    """Un seul op → pas de contrainte, makespan = durée."""
+    durations = [7]
+    family_ids = [0]
+    transition_matrix = [[0]]
+    model, _, ends, _ = _build_machine_with_setup(durations, family_ids, transition_matrix)
+    model.minimize(ends[0])
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status == cp_model.OPTIMAL
+    assert int(solver.objective_value) == 7
+
+
+def test_setup_validates_lengths() -> None:
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 10, "s")
+    e = model.new_int_var(0, 10, "e")
+    with pytest.raises(ValueError, match="même longueur"):
+        add_no_overlap_with_setup(model, [s], [e, e], [0], [[0]])
+    with pytest.raises(ValueError, match="même longueur"):
+        add_no_overlap_with_setup(model, [s], [e], [0, 0], [[0]])
+
+
+def test_setup_validates_square_matrix() -> None:
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 10, "s")
+    e = model.new_int_var(0, 10, "e")
+    with pytest.raises(ValueError, match="carrée"):
+        add_no_overlap_with_setup(model, [s, s], [e, e], [0, 0], [[0, 1], [1]])
+
+
+def test_setup_rejects_negative_values() -> None:
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 10, "s")
+    e = model.new_int_var(0, 10, "e")
+    with pytest.raises(ValueError, match="négatives"):
+        add_no_overlap_with_setup(model, [s, s], [e, e], [0, 0], [[0, -1], [1, 0]])
+
+
+def test_setup_rejects_out_of_range_family_id() -> None:
+    model = cp_model.CpModel()
+    s = model.new_int_var(0, 10, "s")
+    e = model.new_int_var(0, 10, "e")
+    with pytest.raises(ValueError, match="hors borne"):
+        add_no_overlap_with_setup(model, [s, s], [e, e], [0, 5], [[0, 1], [1, 0]])
