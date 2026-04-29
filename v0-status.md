@@ -66,7 +66,7 @@
 
 | # | Étape | Statut | Démarrage | Fin | Critère de sortie | Notes |
 |---|-------|--------|-----------|-----|-------------------|-------|
-| 1.1 | Refactor patterns en classes `Pattern` (schema Pydantic, `apply`, `validate`, `get_test_cases`) | 🟡 en cours | 2026-04-29 | — | Tous les patterns de 0.6 passent par cette interface | Découpé en 1.1a (Pattern ABC + refactor) → 1.1b (extension WorkshopInstance) → 1.1c (intégration solveur) → 1.1d (comparaison perf). 1.1a en cours. |
+| 1.1 | Refactor patterns en classes `Pattern` (schema Pydantic, `apply`, `validate`, `get_test_cases`) | 🟡 en cours | 2026-04-29 | — | Tous les patterns de 0.6 passent par cette interface | 1.1a ✅ (Pattern ABC + 7 classes + registry, 16 tests) · 1.1b en cours (extension WorkshopInstance) · 1.1c/d à venir |
 | 1.2 | Objectif composite (makespan + tardiness + stability) | ⬜ à faire | — | — | Solveur accepte priorités relatives utilisateur | — |
 | 1.3 | Calibration dynamique des poids (pré-résolution + normalisation) | ⬜ à faire | — | — | Sur 10 instances : aucun terme n'écrase les autres | — |
 | 1.4 | Replanification incrémentale (freeze partiel + solution hint) | ⬜ à faire | — | — | Re-solve < 30% du temps initial sur petites perturbations | — |

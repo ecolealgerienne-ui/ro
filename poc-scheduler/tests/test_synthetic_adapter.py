@@ -119,3 +119,138 @@ def test_adapter_validation_passes_on_generated_workshop() -> None:
         for op in job.operations:
             assert op.machine_id in machine_ids
             assert op.duration >= 1
+
+
+# ---------- Champs industriels (étape 1.1b) ----------
+
+
+def test_adapter_populates_n_operators_by_default() -> None:
+    params = GenerationParams(seed=42, n_operators_min=8, n_operators_max=8)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop)
+    assert instance.n_operators == 8
+
+
+def test_adapter_populates_transition_matrix_by_default() -> None:
+    from src.generators.distributions import N_FAMILIES
+
+    params = GenerationParams(seed=42)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop)
+    assert len(instance.transition_matrix) == N_FAMILIES
+    assert all(len(row) == N_FAMILIES for row in instance.transition_matrix)
+    # Diagonale doit être à 0 (pas de setup intra-famille)
+    for i in range(N_FAMILIES):
+        assert instance.transition_matrix[i][i] == 0
+
+
+def test_adapter_assigns_family_ids_to_operations() -> None:
+    from src.generators.distributions import OPERATION_FAMILY
+
+    params = GenerationParams(seed=42, n_jobs_min=20, n_jobs_max=20)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop)
+    for j_idx, job in enumerate(instance.jobs):
+        original_order = workshop.orders[j_idx]
+        for op in job.operations:
+            original_op = original_order.operations[op.sequence_idx]
+            expected_family = OPERATION_FAMILY[original_op.operation_type]
+            assert op.family_id == expected_family
+
+
+def test_adapter_assigns_qualified_operator_ids() -> None:
+    params = GenerationParams(seed=42, n_jobs_min=15, n_jobs_max=15, n_operators_min=5, n_operators_max=5)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop)
+    for job in instance.jobs:
+        for op in job.operations:
+            assert op.qualified_operator_ids
+            assert all(0 <= oid < instance.n_operators for oid in op.qualified_operator_ids)
+
+
+def test_adapter_qualified_operators_match_workshop_qualifications() -> None:
+    """Si un opérateur est qualifié pour 'tournage_ebauche', il doit apparaître
+    dans qualified_operator_ids des opérations de ce type."""
+    params = GenerationParams(seed=7, n_jobs_min=20, n_jobs_max=20)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop)
+
+    qualified_by_type: dict[str, set[int]] = {}
+    for op in workshop.operators:
+        for qual in op.qualifications:
+            qualified_by_type.setdefault(qual, set()).add(op.operator_id)
+
+    for j_idx, job in enumerate(instance.jobs):
+        original_order = workshop.orders[j_idx]
+        for op in job.operations:
+            original_op_type = original_order.operations[op.sequence_idx].operation_type
+            expected = qualified_by_type.get(original_op_type)
+            if expected:
+                assert set(op.qualified_operator_ids) == expected
+
+
+def test_adapter_propagates_shared_resources() -> None:
+    params = GenerationParams(
+        seed=42,
+        shared_resource_probability=1.0,
+        n_machines_min=10,
+        n_machines_max=10,
+    )
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop)
+    assert len(instance.shared_resources) == len(workshop.shared_resources)
+    for spec, original in zip(instance.shared_resources, workshop.shared_resources):
+        assert spec.resource_name == original.resource_name
+        assert spec.machine_ids == original.machine_ids
+        assert spec.max_concurrent == original.max_concurrent
+
+
+def test_adapter_disable_setup_keeps_neutral_defaults() -> None:
+    params = GenerationParams(seed=42)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop, enable_setup=False)
+    assert instance.transition_matrix == []
+    for job in instance.jobs:
+        for op in job.operations:
+            assert op.family_id == 0
+
+
+def test_adapter_disable_operators_keeps_neutral_defaults() -> None:
+    params = GenerationParams(seed=42)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop, enable_operators=False)
+    assert instance.n_operators == 0
+    for job in instance.jobs:
+        for op in job.operations:
+            assert op.qualified_operator_ids == []
+
+
+def test_adapter_disable_shared_resources_keeps_empty() -> None:
+    params = GenerationParams(
+        seed=42, shared_resource_probability=1.0, n_machines_min=10, n_machines_max=10
+    )
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop, enable_shared_resources=False)
+    assert instance.shared_resources == []
+
+
+def test_adapter_resulting_instance_has_industrial_flags() -> None:
+    params = GenerationParams(
+        seed=42,
+        n_jobs_min=10,
+        n_jobs_max=10,
+        n_operators_min=3,
+        n_operators_max=3,
+    )
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop)
+    assert instance.has_setup_constraints
+    assert instance.has_operator_constraints
+
+
+def test_adapter_metadata_records_flags() -> None:
+    params = GenerationParams(seed=42)
+    workshop = generate_workshop(params)
+    instance = synthetic_to_jssp_instance(workshop, enable_setup=False, enable_operators=True)
+    assert instance.metadata["enable_setup"] == "False"
+    assert instance.metadata["enable_operators"] == "True"

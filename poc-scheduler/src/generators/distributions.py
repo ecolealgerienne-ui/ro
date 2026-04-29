@@ -147,3 +147,47 @@ CLIENT_NAMES_BY_TIER: Final[dict[str, tuple[str, ...]]] = {
         "Client_GenT3_L",
     ),
 }
+
+
+# ---------- Familles de pièces et matrice de transition (étape 1.1b) ----------
+#
+# Chaque opération canonique appartient à une famille (regroupement par type
+# de procédé). La matrice de transition donne les setup times entre familles
+# en minutes. Diagonale = 0 (pas de setup intra-famille).
+#
+# Cette modélisation simplifiée (familles globales, matrice unique) sera
+# raffinée en étape 1.7 avec un clustering automatique par atelier.
+
+OPERATION_FAMILY: Final[dict[str, int]] = {
+    "tournage_ebauche": 0,
+    "tournage_finition": 0,
+    "fraisage_ebauche": 1,
+    "fraisage_finition": 1,
+    "fraisage_5axes": 1,
+    "percage": 2,
+    "taraudage": 2,
+    "rectification_cylindrique": 3,
+    "rectification_plane": 3,
+    "controle_dimensionnel": 4,
+    "ebavurage": 5,
+    "marquage": 5,
+    "lavage": 5,
+    "traitement_thermique_externe": 6,
+    "anodisation_externe": 6,
+}
+
+N_FAMILIES: Final[int] = 7
+
+# Setup times inter-familles (minutes).
+# Lignes = depuis, colonnes = vers. Ordres de grandeur calibrés sur la pratique
+# atelier méca précision (changement matière, changement outillage).
+DEFAULT_TRANSITION_MATRIX: Final[tuple[tuple[int, ...], ...]] = (
+    # tournage(0), fraisage(1), percage(2), rectif(3), controle(4), finition(5), externe(6)
+    (0,  20, 15, 30, 5,  10, 0),    # depuis tournage
+    (20, 0,  15, 30, 5,  10, 0),    # depuis fraisage
+    (15, 15, 0,  25, 5,  10, 0),    # depuis percage/taraudage
+    (30, 30, 25, 0,  10, 15, 0),    # depuis rectification (changement abrasif coûteux)
+    (5,  5,  5,  10, 0,  5,  0),    # depuis controle (poste différent, peu d'impact)
+    (10, 10, 10, 15, 5,  0,  0),    # depuis finition manuelle
+    (0,  0,  0,  0,  0,  0,  0),    # depuis externe (sous-traitance, pas de setup interne)
+)
