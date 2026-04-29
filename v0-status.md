@@ -51,7 +51,7 @@
 | 0.1 | Setup repo `poc-scheduler` (uv, ruff, mypy, pytest, structure `src/`) | ✅ stabilisée | 2026-04-29 | 2026-04-29 | `uv sync` + `pytest` passent à vide | Validé en local WSL : 2/2 tests OK, Python 3.11.15, pytest 9.0.3 |
 | 0.2 | Loader Taillard + parser CSV optima | ✅ stabilisée | 2026-04-29 | 2026-04-29 | Fichiers ta01/11/21/31/41 parsent sans erreur | Validé : 25/25 tests, 80/80 instances téléchargées en 14s, ta01/ta31/ta51 parsés avec métadonnées |
 | 0.3 | Solveur JSSP basique (NoOverlap par machine, Precedence, Makespan) | ✅ stabilisée | 2026-04-29 | 2026-04-29 | Mini-cas 3×3 résolu à l'optimum connu | Validé : 41/41 tests, 2×2 → makespan 5 (OPTIMAL), 3×3 OR-Tools → makespan 11 (OPTIMAL), smoke ta01 résolu en < 4s avec makespan ≥ 1231 |
-| 0.4 | Benchmark Taillard ta01-ta41, budget 120s | 🟡 en cours | 2026-04-29 | — | **Gap < 5% vs optimum sur 4/5 instances** | Gate 0 part 1 — implémentation en cours, batch à exécuter en local |
+| 0.4 | Benchmark Taillard ta01-ta41, budget 120s | ✅ stabilisée | 2026-04-29 | 2026-04-29 | **Gap < 5% vs optimum sur 4/5 instances** | **5/5 sous 5%** : ta01 0.00% (OPTIMAL en 2.8s) · ta11 1.03% · ta21 2.62% · ta31 1.19% · ta41 4.24% · gap moyen 1.82% · max 4.24% — Gate 0 part 1 ✓ |
 | 0.5 | Générateur d'ateliers synthétiques (machines, opérateurs, OF, gammes) | ⬜ à faire | — | — | 1 atelier généré < 2s, schéma Pydantic strict | — |
 | 0.6 | Patterns avancés : setup sequence-dependent, qualified operator, shared resources, calendars | ⬜ à faire | — | — | Chaque pattern a ses tests unitaires golden | — |
 | 0.7 | Test intégration générateur → solveur (50-200 OF, 5-25 machines) | ⬜ à faire | — | — | **Solution faisable < 60s sur 80% des cas** | Gate 0 part 2 |
@@ -200,7 +200,7 @@
 | 2026-04-29 | Monorepo dans `ro/` avec sous-dossiers par composant | Simplicité solo, refactoring facile, traçabilité E2E | Pas de repo séparé pour `poc-scheduler` |
 | 2026-04-29 | Convention de commits = Conventional Commits | Lisibilité historique, automatisation possible (changelog) | Tous les commits suivent `<type>(<scope>): <sujet>` |
 | 2026-04-29 | Stratégie de branches = `main` + `dev` + `feat/<phase>.<étape>-<slug>` | Trace par étape `v0-status.md`, PR pour review même solo | À appliquer une fois la branche `claude/create-session-Y481M` mergée |
-| 2026-04-29 | Pre-commit hooks via framework `pre-commit` | Standard Python, support multi-langues | Activation effective à l'étape 0.1 (env Python prêt) |
+| 2026-04-29 | **Gate 0 part 1 ✅ — OR-Tools CP-SAT validé sur Taillard** | Batch ta01/11/21/31/41 budget 120s × 8 workers : 5/5 instances sous 5% de gap, gap moyen 1.82%, max 4.24% (ta41). ta01 résolu à l'optimum prouvé en 2.8s. | Décision : **GO** sur le moteur OR-Tools direct (vs MiniZinc, Hexaly). Le choix structurant `specs-techniques-v3.md §6.1` est confirmé empiriquement. |
 
 ---
 
