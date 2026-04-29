@@ -49,7 +49,7 @@
 | # | Étape | Statut | Démarrage | Fin | Critère de sortie | Notes |
 |---|-------|--------|-----------|-----|-------------------|-------|
 | 0.1 | Setup repo `poc-scheduler` (uv, ruff, mypy, pytest, structure `src/`) | ✅ stabilisée | 2026-04-29 | 2026-04-29 | `uv sync` + `pytest` passent à vide | Validé en local WSL : 2/2 tests OK, Python 3.11.15, pytest 9.0.3 |
-| 0.2 | Loader Taillard + parser CSV optima | 🟡 en cours | 2026-04-29 | — | Fichiers ta01/11/21/31/41 parsent sans erreur | — |
+| 0.2 | Loader Taillard + parser CSV optima | ✅ stabilisée | 2026-04-29 | 2026-04-29 | Fichiers ta01/11/21/31/41 parsent sans erreur | Validé : 25/25 tests, 80/80 instances téléchargées en 14s, ta01/ta31/ta51 parsés avec métadonnées |
 | 0.3 | Solveur JSSP basique (NoOverlap par machine, Precedence, Makespan) | ⬜ à faire | — | — | Mini-cas 3×3 résolu à l'optimum connu | — |
 | 0.4 | Benchmark Taillard ta01-ta41, budget 120s | ⬜ à faire | — | — | **Gap < 5% vs optimum sur 4/5 instances** | Gate 0 part 1 |
 | 0.5 | Générateur d'ateliers synthétiques (machines, opérateurs, OF, gammes) | ⬜ à faire | — | — | 1 atelier généré < 2s, schéma Pydantic strict | — |
