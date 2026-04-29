@@ -51,7 +51,7 @@
 | 0.1 | Setup repo `poc-scheduler` (uv, ruff, mypy, pytest, structure `src/`) | ✅ stabilisée | 2026-04-29 | 2026-04-29 | `uv sync` + `pytest` passent à vide | Validé en local WSL : 2/2 tests OK, Python 3.11.15, pytest 9.0.3 |
 | 0.2 | Loader Taillard + parser CSV optima | ✅ stabilisée | 2026-04-29 | 2026-04-29 | Fichiers ta01/11/21/31/41 parsent sans erreur | Validé : 25/25 tests, 80/80 instances téléchargées en 14s, ta01/ta31/ta51 parsés avec métadonnées |
 | 0.3 | Solveur JSSP basique (NoOverlap par machine, Precedence, Makespan) | ✅ stabilisée | 2026-04-29 | 2026-04-29 | Mini-cas 3×3 résolu à l'optimum connu | Validé : 41/41 tests, 2×2 → makespan 5 (OPTIMAL), 3×3 OR-Tools → makespan 11 (OPTIMAL), smoke ta01 résolu en < 4s avec makespan ≥ 1231 |
-| 0.4 | Benchmark Taillard ta01-ta41, budget 120s | ⬜ à faire | — | — | **Gap < 5% vs optimum sur 4/5 instances** | Gate 0 part 1 |
+| 0.4 | Benchmark Taillard ta01-ta41, budget 120s | 🟡 en cours | 2026-04-29 | — | **Gap < 5% vs optimum sur 4/5 instances** | Gate 0 part 1 — implémentation en cours, batch à exécuter en local |
 | 0.5 | Générateur d'ateliers synthétiques (machines, opérateurs, OF, gammes) | ⬜ à faire | — | — | 1 atelier généré < 2s, schéma Pydantic strict | — |
 | 0.6 | Patterns avancés : setup sequence-dependent, qualified operator, shared resources, calendars | ⬜ à faire | — | — | Chaque pattern a ses tests unitaires golden | — |
 | 0.7 | Test intégration générateur → solveur (50-200 OF, 5-25 machines) | ⬜ à faire | — | — | **Solution faisable < 60s sur 80% des cas** | Gate 0 part 2 |
