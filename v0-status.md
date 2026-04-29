@@ -25,7 +25,7 @@
 | Phase | Intitulé | Statut global | Démarrage | Fin |
 |-------|----------|---------------|-----------|-----|
 | 0 | Validation OR-Tools (go/no-go projet) | ✅ stabilisée | 2026-04-29 | 2026-04-29 |
-| 1 | Bibliothèque de patterns + objectifs composites | ⬜ à faire | — | — |
+| 1 | Bibliothèque de patterns + objectifs composites | 🟡 en cours | 2026-04-29 | — |
 | 2 | Trust layer technique (sans LLM) | ⬜ à faire | — | — |
 | 3 | Agents LLM + serveur MCP | ⬜ à faire | — | — |
 | 4 | Backend SaaS + persistance | ⬜ à faire | — | — |
@@ -66,7 +66,7 @@
 
 | # | Étape | Statut | Démarrage | Fin | Critère de sortie | Notes |
 |---|-------|--------|-----------|-----|-------------------|-------|
-| 1.1 | Refactor patterns en classes `Pattern` (schema Pydantic, `apply`, `validate`, `get_test_cases`) | ⬜ à faire | — | — | Tous les patterns de 0.6 passent par cette interface | — |
+| 1.1 | Refactor patterns en classes `Pattern` (schema Pydantic, `apply`, `validate`, `get_test_cases`) | 🟡 en cours | 2026-04-29 | — | Tous les patterns de 0.6 passent par cette interface | Découpé en 1.1a (Pattern ABC + refactor) → 1.1b (extension WorkshopInstance) → 1.1c (intégration solveur) → 1.1d (comparaison perf). 1.1a en cours. |
 | 1.2 | Objectif composite (makespan + tardiness + stability) | ⬜ à faire | — | — | Solveur accepte priorités relatives utilisateur | — |
 | 1.3 | Calibration dynamique des poids (pré-résolution + normalisation) | ⬜ à faire | — | — | Sur 10 instances : aucun terme n'écrase les autres | — |
 | 1.4 | Replanification incrémentale (freeze partiel + solution hint) | ⬜ à faire | — | — | Re-solve < 30% du temps initial sur petites perturbations | — |
