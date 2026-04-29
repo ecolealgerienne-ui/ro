@@ -24,7 +24,7 @@
 
 | Phase | Intitulé | Statut global | Démarrage | Fin |
 |-------|----------|---------------|-----------|-----|
-| 0 | Validation OR-Tools (go/no-go projet) | ⬜ à faire | — | — |
+| 0 | Validation OR-Tools (go/no-go projet) | 🟡 en cours | 2026-04-29 | — |
 | 1 | Bibliothèque de patterns + objectifs composites | ⬜ à faire | — | — |
 | 2 | Trust layer technique (sans LLM) | ⬜ à faire | — | — |
 | 3 | Agents LLM + serveur MCP | ⬜ à faire | — | — |
@@ -48,7 +48,7 @@
 
 | # | Étape | Statut | Démarrage | Fin | Critère de sortie | Notes |
 |---|-------|--------|-----------|-----|-------------------|-------|
-| 0.1 | Setup repo `poc-scheduler` (uv, ruff, mypy, pytest, structure `src/`) | ⬜ à faire | — | — | `uv sync` + `pytest` passent à vide | — |
+| 0.1 | Setup repo `poc-scheduler` (uv, ruff, mypy, pytest, structure `src/`) | 🔵 en test | 2026-04-29 | — | `uv sync` + `pytest` passent à vide | Structure créée, à valider en local WSL via `uv sync && uv run pytest` |
 | 0.2 | Loader Taillard + parser CSV optima | ⬜ à faire | — | — | Fichiers ta01/11/21/31/41 parsent sans erreur | — |
 | 0.3 | Solveur JSSP basique (NoOverlap par machine, Precedence, Makespan) | ⬜ à faire | — | — | Mini-cas 3×3 résolu à l'optimum connu | — |
 | 0.4 | Benchmark Taillard ta01-ta41, budget 120s | ⬜ à faire | — | — | **Gap < 5% vs optimum sur 4/5 instances** | Gate 0 part 1 |
