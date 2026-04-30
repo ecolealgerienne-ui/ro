@@ -92,6 +92,7 @@ poc-scheduler/
 │           ├── preflight_config.py    # MECH_COLUMN_PATTERNS, MECH_REQUIRED_*
 │           ├── scoring_config.py      # MECH_CONFIDENCE_WEIGHTS
 │           ├── simulation_config.py   # MECH_SIMULATION_THRESHOLDS
+│           ├── replanification_config.py  # MECH_TIER_WEIGHTS (1.5)
 │           ├── soft_translators.py    # 3 translators NL→pénalités CP-SAT (1.6)
 │           ├── prompts/               # 5 prompts + 2 schémas (markdown)
 │           └── agents/                # 5 agents Phase 3
@@ -124,6 +125,6 @@ narratifs (`../phase-{0,1,2}-report.md`).
 **Étape courante : Phase 2 — Trust layer technique.**
 
 - ✅ Phase 0 stabilisée (Gate 0 ✓ : OR-Tools validé sur Taillard)
-- 🟡 Phase 1 en cours (1.1 ✓, 1.2 ✓ composite, 1.3 ✓ calibration, **1.4 ✓** replanif, 1.6 ✓ — 6 translators / 4 idiomes ; 1.1.opt et 1.5/1.7-1.8 restantes)
+- 🟡 Phase 1 en cours (1.1 ✓, 1.2 ✓ composite, 1.3 ✓ calibration, 1.4 ✓ replanif, **1.5 ✓** tier stability, 1.6 ✓ — 6 translators / 4 idiomes ; 1.1.opt et 1.7-1.8 restantes)
 - ✅ **Phase 2 stabilisée + Gate 1 ✓** (trust layer technique livrée, 0 erreur silencieuse / 20 ateliers tests)
 - ✅ **Phase 3 stabilisée** (3.3-3.8 livrés, 13 trials réels OK, prompts validés ; 3.1/3.2 MCP abandonnés)

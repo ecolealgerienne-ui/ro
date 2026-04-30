@@ -4,7 +4,7 @@
 > Documente les résultats concrets, décisions techniques et métriques de chaque étape.
 > Mis à jour à chaque étape stabilisée.
 
-**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.2 ✅, 1.3 ✅, 1.4 ✅, 1.6 ✅, 1.1.opt + 1.5 + 1.7-1.8 en attente**
+**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.2 ✅, 1.3 ✅, 1.4 ✅, 1.5 ✅, 1.6 ✅, 1.1.opt + 1.7-1.8 en attente**
 
 ---
 
@@ -330,6 +330,50 @@ variance CP-SAT). Garde-fou : si le solve initial < 100 ms, on ne mesure pas
 
 ---
 
+## Étape 1.5 — Stabilité pondérée par criticité Tier ✅ stabilisée 2026-04-30
+
+**Objectif** : différencier le coût de déviation entre jobs critiques et jobs
+standards lors d'une replanification. Critère produit : *« déplacer un Tier 1
+coûte 10× plus qu'un Tier 3 »*.
+
+### Verticalité préservée — 9e fois
+
+| Couche | Responsabilité |
+|---|---|
+| **Engine** (`src/core/`) | Mécanisme universel : `Job.criticality: int \| None` (champ optionnel), `tier_weighted_stability_var(weight_per_tier, default_weight)`, intégration `build_composite_soft_penalties(stability_tier_weights=...)`. La pondération par tier est universelle (santé, éducation, services techniques l'utiliseraient avec leurs propres tiers). |
+| **Verticale méca** (`replanification_config.py`) | Calibration métier : `MECH_TIER_WEIGHTS = {1: 10, 2: 3, 3: 1}`. Tier 1 = aero certifié / médical / donneur stratégique, Tier 2 = auto/IATF, Tier 3 = opportuniste (référence). Justification documentée dans la docstring du module. |
+
+### Livrables
+
+- **`Job.criticality: int | None`** (`ge=1`, `None` = pas de tier assigné).
+- **`tier_weighted_stability_var()`** : engine helper, retourne IntVar =
+  `Σ weight_per_tier[job.criticality] × |new_start - old_start|`.
+- **`build_composite_soft_penalties(stability_tier_weights=...)`** : si
+  fourni, label = `composite_stability_tier_weighted` ; sinon
+  `composite_stability` (Phase 1.4 uniforme). Backward-compatible.
+- **`MECH_TIER_WEIGHTS`** dans nouveau module `replanification_config.py`.
+  Exposé dans `verticals.mech_workshop.__init__`.
+
+### Critère de sortie validé
+
+| Test | Verdict |
+|---|---|
+| `test_critere_de_sortie_tier_1_cout_10x_tier_3` | Ratio effectif des contributions Tier 1 / Tier 3 sur déviation identique = exactly 10 ✓ |
+| `test_tier_weighted_solver_prefers_to_move_tier_3` | Sur instance forçant à déplacer 1 op, le solveur garde le T1 à 0 et bouge le T3 à 5 ✓ |
+| `test_mech_tier_weights_satisfies_critere` | `MECH_TIER_WEIGHTS[1] / MECH_TIER_WEIGHTS[3] == 10` ✓ |
+
+### Tests (11 ajoutés, 359 total)
+
+- 3 sur `Job.criticality` (default None, valeur, ge=1)
+- 4 sur `tier_weighted_stability_var` (validation, default_weight, no match,
+  critère de sortie ratio 10×)
+- 2 sur `build_composite_soft_penalties(stability_tier_weights=...)` (label
+  bascule selon parametre, fallback uniforme)
+- 1 sur `MECH_TIER_WEIGHTS` (valeurs respectent le critère)
+- 1 test d'intégration solver (préférence pour bouger le T3)
+
+---
+
 ## Étape 1.6 — Soft constraints en pénalités (côté solver) ✅ stabilisée 2026-04-30
 
 **Objectif** : pendant côté CP-SAT du module 3.6 (NL → JSON typé). Traduit les
@@ -409,11 +453,8 @@ basse, le scaffolding existant les accueille sans rework).
 
 1. **Phase 1.1.opt** — Migration setup pattern — **toujours prioritaire** avant
    scale réel (bottleneck identifié en 1.1d)
-2. **Phase 1.5** — Stabilité pondérée par criticité Tier 1/2/3 (extension
-   naturelle de 1.4 : différencier les soft penalties de stabilité selon le
-   tier client)
-3. **Phase 1.7** — Clustering automatique des familles de pièces
-4. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
+2. **Phase 1.7** — Clustering automatique des familles de pièces
+3. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
 
 ---
 

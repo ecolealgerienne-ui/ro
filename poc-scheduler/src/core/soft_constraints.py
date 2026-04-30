@@ -212,3 +212,79 @@ def schedule_stability_var(
     total = model.new_int_var(0, horizon * len(deviations), "stability_total")
     model.add(total == sum(deviations))
     return total
+
+
+def tier_weighted_stability_var(
+    model: Any,
+    *,
+    instance: Any,
+    op_vars: Mapping[tuple[int, int], Mapping[str, Any]],
+    horizon: int,
+    reference_schedule: Mapping[tuple[int, int], int],
+    weight_per_tier: Mapping[int, int],
+    default_weight: int = 1,
+) -> Any | None:
+    """Stabilite ponderee par criticite — variant tier-aware de `schedule_stability_var`.
+
+    Pour chaque op `(job_id, seq_idx)` du reference :
+
+        deviation = |new_start - old_start|
+        weight    = weight_per_tier[job.criticality]  si defini,
+                    sinon `default_weight`
+        contribution = weight × deviation
+
+    Le total = somme des contributions ponderees. Les ops dont le `Job.criticality`
+    n'est pas dans `weight_per_tier` utilisent `default_weight`.
+
+    Use case (Phase 1.5) : penaliser **plus** les deviations des jobs critiques
+    (Tier 1) que celles des jobs standards (Tier 3) lors d'une replanification.
+    Critere produit : "deplacer un Tier 1 doit couter 10× plus qu'un Tier 3".
+
+    Args:
+        instance: WorkshopInstance (pour acceder a `Job.criticality`).
+        weight_per_tier: mapping `tier -> weight_multiplier`. Convention typique
+            (mech_workshop) : `{1: 10, 2: 3, 3: 1}`.
+        default_weight: poids applique aux jobs sans `criticality` (ou avec
+            tier absent de `weight_per_tier`). Defaut 1.
+
+    Returns:
+        IntVar de la deviation ponderee totale, ou None si aucune ref ne match
+        `op_vars`.
+
+    Raises:
+        ValueError: si `default_weight < 1` ou si un poids dans
+            `weight_per_tier` est < 1.
+    """
+    if default_weight < 1:
+        raise ValueError(f"default_weight doit etre >= 1, recu {default_weight}")
+    for tier, w in weight_per_tier.items():
+        if w < 1:
+            raise ValueError(f"weight_per_tier[{tier}] doit etre >= 1, recu {w}")
+
+    job_criticality: dict[int, int | None] = {
+        job.job_id: job.criticality for job in instance.jobs
+    }
+
+    weighted_terms: list[Any] = []
+    max_weight = max(
+        (weight_per_tier.get(c, default_weight) for c in job_criticality.values()),
+        default=default_weight,
+    )
+    for (job_id, seq_idx), old_start in reference_schedule.items():
+        if (job_id, seq_idx) not in op_vars:
+            continue
+        new_start = op_vars[(job_id, seq_idx)]["start"]
+        diff = model.new_int_var(-horizon, horizon, f"twdiff_j{job_id}_o{seq_idx}")
+        model.add(diff == new_start - old_start)
+        abs_diff = model.new_int_var(0, horizon, f"twabs_j{job_id}_o{seq_idx}")
+        model.add_abs_equality(abs_diff, diff)
+        crit = job_criticality.get(job_id)
+        weight = weight_per_tier.get(crit, default_weight) if crit is not None else default_weight
+        weighted_terms.append(weight * abs_diff)
+
+    if not weighted_terms:
+        return None
+    bound = horizon * len(weighted_terms) * max(1, max_weight)
+    total = model.new_int_var(0, bound, "tier_weighted_stability_total")
+    model.add(total == sum(weighted_terms))
+    return total

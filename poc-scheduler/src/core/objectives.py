@@ -45,6 +45,7 @@ from src.core.soft_constraints import (
     aggregate_completion_var,
     aggregate_tardiness_var,
     schedule_stability_var,
+    tier_weighted_stability_var,
 )
 
 
@@ -191,6 +192,7 @@ def build_composite_soft_penalties(
     spec: CompositeObjectiveSpec,
     *,
     reference_schedule: Mapping[tuple[int, int], int] | None = None,
+    stability_tier_weights: Mapping[int, int] | None = None,
     vertical_extras: Callable[..., Sequence[SoftPenaltyVar]] | None = None,
     calibrate: bool = True,
     calibration_target: int = CALIBRATION_TARGET,
@@ -202,6 +204,11 @@ def build_composite_soft_penalties(
         reference_schedule: si fourni et `spec.stability != DISABLED`, ajoute
             la penalite de stabilite (deviation vs ce reference). Sinon, la
             stabilite est silencieusement absente.
+        stability_tier_weights: si fourni (Phase 1.5), utilise
+            `tier_weighted_stability_var` au lieu de `schedule_stability_var`.
+            Le mapping `tier -> weight` est typiquement fourni par la verticale
+            (ex: `MECH_TIER_WEIGHTS = {1: 10, 2: 3, 3: 1}`). Sans effet si
+            `reference_schedule` est None.
         vertical_extras: callable optionnel pour ajouter des `SoftPenaltyVar`
             specifiques a la verticale (ex: le dispatcher de soft constraints
             NL-driven). Signature : `(*, model, instance, op_vars, horizon) ->
@@ -242,17 +249,32 @@ def build_composite_soft_penalties(
                 out.append(sp)
 
         # Stability vs reference — expected_max = horizon * n_ops_in_reference
+        # (multiplie par max_tier_weight si tier-pondere, Phase 1.5)
         if spec.stability is not ObjectivePriority.DISABLED and reference_schedule is not None:
-            stab = schedule_stability_var(
-                model,
-                op_vars=op_vars,
-                horizon=horizon,
-                reference_schedule=reference_schedule,
-            )
-            expected_max = max(1, horizon * len(reference_schedule))
+            if stability_tier_weights:
+                stab = tier_weighted_stability_var(
+                    model,
+                    instance=instance,
+                    op_vars=op_vars,
+                    horizon=horizon,
+                    reference_schedule=reference_schedule,
+                    weight_per_tier=stability_tier_weights,
+                )
+                max_tier_weight = max(stability_tier_weights.values(), default=1)
+                expected_max = max(1, horizon * len(reference_schedule) * max_tier_weight)
+                label = "composite_stability_tier_weighted"
+            else:
+                stab = schedule_stability_var(
+                    model,
+                    op_vars=op_vars,
+                    horizon=horizon,
+                    reference_schedule=reference_schedule,
+                )
+                expected_max = max(1, horizon * len(reference_schedule))
+                label = "composite_stability"
             sp = _maybe_penalty(
                 stab,
-                label="composite_stability",
+                label=label,
                 priority=spec.stability,
                 expected_max=expected_max,
             )

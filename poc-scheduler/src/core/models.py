@@ -49,11 +49,16 @@ class Operation(BaseModel):
 class Job(BaseModel):
     """Un job composé d'une suite ordonnée d'opérations (gamme opératoire).
 
-    Champs optionnels (étape 1.6) :
-        - deadline : échéance en unités de temps cohérentes avec horizon. Permet
-          aux soft constraints de pénaliser la tardiveté.
-        - client : identifiant du donneur d'ordre. Permet aux soft constraints
-          de moduler la priorité par client.
+    Champs optionnels :
+        - deadline (étape 1.6) : échéance en unités de temps cohérentes avec
+          horizon. Permet aux soft constraints de pénaliser la tardiveté.
+        - client (étape 1.6) : identifiant du donneur d'ordre. Permet aux soft
+          constraints de moduler la priorité par client.
+        - criticality (étape 1.5) : niveau de criticité (1 = critique, 3 =
+          standard, sémantique générique). None = pas de tier assigné.
+          Utilisé par la stabilité tier-pondérée pour rendre la déviation des
+          jobs critiques plus coûteuse que celle des jobs standards. La
+          verticale fournit la table `weight_per_tier` correspondante.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -68,6 +73,14 @@ class Job(BaseModel):
     client: str | None = Field(
         default=None,
         description="Identifiant du donneur d'ordre (texte libre).",
+    )
+    criticality: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Niveau de criticité (1 = critique, 3 = standard, convention "
+            "tier-supplier inversée). None = pas de tier assigné, poids par défaut."
+        ),
     )
 
     @model_validator(mode="after")
