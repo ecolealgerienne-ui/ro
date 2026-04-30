@@ -4,6 +4,7 @@ import { ClientsModule } from './clients/clients.module';
 import { HealthModule } from './health/health.module';
 import { MachinesModule } from './machines/machines.module';
 import { OrdersModule } from './orders/orders.module';
+import { PreflightSessionsModule } from './preflight-sessions/preflight-sessions.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SolveJobsModule } from './solve-jobs/solve-jobs.module';
 import { VersionsModule } from './versions/versions.module';
@@ -23,6 +24,7 @@ import { WorkshopsModule } from './workshops/workshops.module';
     ClientsModule,
     OrdersModule,
     SolveJobsModule,
+    PreflightSessionsModule,
   ],
 })
 export class AppModule {}

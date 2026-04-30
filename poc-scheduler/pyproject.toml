@@ -17,6 +17,10 @@ dependencies = [
     "anthropic>=0.39",
     # Phase 4 J4 : worker DB-as-queue (psycopg v3, driver Postgres)
     "psycopg[binary]>=3.2",
+    # Phase 4 J5 : mini service HTTP synchrone exposant src/preflight/
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "python-multipart>=0.0.20",
 ]
 
 [dependency-groups]

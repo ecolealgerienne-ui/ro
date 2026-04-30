@@ -18,10 +18,7 @@ export class SolveJobsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(
-    @Param('workshopId', ParseUUIDPipe) workshopId: string,
-    @Body() dto: CreateSolveJobDto,
-  ) {
+  create(@Param('workshopId', ParseUUIDPipe) workshopId: string, @Body() dto: CreateSolveJobDto) {
     return this.solveJobs.create(workshopId, dto);
   }
 

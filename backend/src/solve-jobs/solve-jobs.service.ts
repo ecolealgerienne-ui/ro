@@ -22,9 +22,7 @@ export class SolveJobsService {
           select: { id: true },
         });
         if (!v) {
-          throw new BadRequestException(
-            `Version ${versionId} n'appartient pas à ce workshop`,
-          );
+          throw new BadRequestException(`Version ${versionId} n'appartient pas à ce workshop`);
         }
       } else {
         // Si pas de version explicite, on snapshot la version active comme repère.
@@ -68,9 +66,7 @@ export class SolveJobsService {
       const job = await tx.solveJob.findFirst({ where: { id, workshopId } });
       if (!job) throw new NotFoundException(`SolveJob ${id} introuvable`);
       if (job.status !== 'pending') {
-        throw new BadRequestException(
-          `SolveJob ${id} n'est pas en attente (status=${job.status})`,
-        );
+        throw new BadRequestException(`SolveJob ${id} n'est pas en attente (status=${job.status})`);
       }
       return tx.solveJob.update({
         where: { id },
