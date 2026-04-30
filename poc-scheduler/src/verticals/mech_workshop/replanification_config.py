@@ -36,6 +36,6 @@ from typing import Final
 
 MECH_TIER_WEIGHTS: Final[dict[int, int]] = {
     1: 10,  # Tier 1 — critique (aero, medical, donneur strategique)
-    2: 3,   # Tier 2 — standard (auto, industriel)
-    3: 1,   # Tier 3 — opportuniste (reference)
+    2: 3,  # Tier 2 — standard (auto, industriel)
+    3: 1,  # Tier 3 — opportuniste (reference)
 }

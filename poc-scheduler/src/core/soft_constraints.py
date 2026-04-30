@@ -261,9 +261,7 @@ def tier_weighted_stability_var(
         if w < 1:
             raise ValueError(f"weight_per_tier[{tier}] doit etre >= 1, recu {w}")
 
-    job_criticality: dict[int, int | None] = {
-        job.job_id: job.criticality for job in instance.jobs
-    }
+    job_criticality: dict[int, int | None] = {job.job_id: job.criticality for job in instance.jobs}
 
     weighted_terms: list[Any] = []
     max_weight = max(

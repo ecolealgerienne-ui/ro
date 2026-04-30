@@ -73,9 +73,10 @@ poc-scheduler/
 │   │   ├── simulation.py       # Simulation post-hoc (verdict ACCEPT/WARN/REJECT)
 │   │   ├── circuit_breaker.py  # Circuit breaker INFEASIBLE (3 retries + MIS)
 │   │   ├── pipeline.py         # Pipeline complet (solve → sim → score → decide)
-│   │   ├── soft_constraints.py # WeightedObjectivePattern + SoftPenaltyVar (1.6, 1.3)
+│   │   ├── soft_constraints.py # WeightedObjectivePattern + SoftPenaltyVar (1.6, 1.3, 1.5)
 │   │   ├── objectives.py       # CompositeObjectiveSpec + priorités nommées (1.2)
-│   │   └── replanification.py  # FreezeSpec + SolutionHintSpec + derive helper (1.4)
+│   │   ├── replanification.py  # FreezeSpec + SolutionHintSpec + derive helper (1.4)
+│   │   └── clustering.py       # agglomerative_cluster engine generic (1.7)
 │   ├── preflight/              # Pre-flight CSV générique (vertical-agnostic)
 │   ├── loaders/                # Loaders génériques (Taillard, benchmark runner)
 │   ├── llm/                    # Couche LLM générique (provider, parsing)
@@ -93,7 +94,8 @@ poc-scheduler/
 │           ├── scoring_config.py      # MECH_CONFIDENCE_WEIGHTS
 │           ├── simulation_config.py   # MECH_SIMULATION_THRESHOLDS
 │           ├── replanification_config.py  # MECH_TIER_WEIGHTS (1.5)
-│           ├── soft_translators.py    # 3 translators NL→pénalités CP-SAT (1.6)
+│           ├── clustering.py          # order_distance + cluster_orders_to_families (1.7)
+│           ├── soft_translators.py    # 6 translators NL→pénalités CP-SAT (1.6)
 │           ├── prompts/               # 5 prompts + 2 schémas (markdown)
 │           └── agents/                # 5 agents Phase 3
 │               ├── extraction_questionnaire.py  # 3.4
@@ -125,6 +127,6 @@ narratifs (`../phase-{0,1,2}-report.md`).
 **Étape courante : Phase 2 — Trust layer technique.**
 
 - ✅ Phase 0 stabilisée (Gate 0 ✓ : OR-Tools validé sur Taillard)
-- 🟡 Phase 1 en cours (1.1 ✓, 1.2 ✓ composite, 1.3 ✓ calibration, 1.4 ✓ replanif, **1.5 ✓** tier stability, 1.6 ✓ — 6 translators / 4 idiomes ; 1.1.opt et 1.7-1.8 restantes)
+- 🟡 Phase 1 en cours (1.1 ✓, 1.2 ✓ composite, 1.3 ✓ calibration, 1.4 ✓ replanif, 1.5 ✓ tier, 1.6 ✓ soft constraints, **1.7 ✓** clustering ; 1.1.opt et 1.8 restantes)
 - ✅ **Phase 2 stabilisée + Gate 1 ✓** (trust layer technique livrée, 0 erreur silencieuse / 20 ateliers tests)
 - ✅ **Phase 3 stabilisée** (3.3-3.8 livrés, 13 trials réels OK, prompts validés ; 3.1/3.2 MCP abandonnés)

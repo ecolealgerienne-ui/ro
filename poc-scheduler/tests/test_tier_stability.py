@@ -341,9 +341,7 @@ def test_build_composite_falls_back_to_uniform_without_tier_weights() -> None:
         machines=[Machine(machine_id=0)],
     )
     # Pas de stability_tier_weights → label = "composite_stability" (uniforme)
-    builder = build_composite_soft_penalties(
-        spec, reference_schedule={(0, 0): 0}, calibrate=False
-    )
+    builder = build_composite_soft_penalties(spec, reference_schedule={(0, 0): 0}, calibrate=False)
     model = cp_model.CpModel()
     op_vars = _build_op_vars(model, instance, horizon=100)
     out = builder(model=model, instance=instance, op_vars=op_vars, horizon=100)

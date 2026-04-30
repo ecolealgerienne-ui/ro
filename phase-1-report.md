@@ -4,7 +4,7 @@
 > Documente les résultats concrets, décisions techniques et métriques de chaque étape.
 > Mis à jour à chaque étape stabilisée.
 
-**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.2 ✅, 1.3 ✅, 1.4 ✅, 1.5 ✅, 1.6 ✅, 1.1.opt + 1.7-1.8 en attente**
+**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.2 ✅, 1.3 ✅, 1.4 ✅, 1.5 ✅, 1.6 ✅, 1.7 ✅, 1.1.opt + 1.8 en attente**
 
 ---
 
@@ -374,6 +374,52 @@ coûte 10× plus qu'un Tier 3 »*.
 
 ---
 
+## Étape 1.7 — Clustering automatique des familles ✅ stabilisée 2026-04-30
+
+**Objectif** : grouper automatiquement les pièces (OF) extraites par l'agent
+3.5 en familles cohérentes, pour piloter ensuite les setup times, la
+répartition machine et la connaissance opérateur.
+
+### Verticalité préservée — 10e fois
+
+| Couche | Responsabilité |
+|---|---|
+| **Engine** (`src/core/clustering.py`) | Mécanisme universel : `agglomerative_cluster(items, distance_fn, target_n_clusters, merge_distance_threshold)`. Algorithme greedy average-linkage (O(n³), acceptable pour n ≤ 200). Threshold optionnel pour éviter les fusions forcées entre items dissemblables. |
+| **Verticale méca** (`mech_workshop/clustering.py`) | Distance métier : `order_distance(o1, o2)` combine Jaccard sur ops (50 %) + match matériau (30 %) + Jaccard sur machines (20 %). La verticale santé fournirait `(procédure, salle, équipement)`, l'éducation `(matière, niveau, durée)`. |
+
+### Livrables
+
+- **Engine `agglomerative_cluster()`** : signature générique, threshold pour
+  arrêt précoce sur dissimilarité.
+- **Vertical `order_distance()`** : pondération métier 50/30/20.
+- **Vertical `cluster_orders_to_families()`** : glue pour `ExtractedOrder`
+  (sortie Phase 3.5).
+
+### Critère de sortie validé
+
+| Test | Verdict |
+|---|---|
+| `test_critere_de_sortie_100_pieces_5_to_15_families` | 100 OF en 8 archétypes → 8 familles ∈ [5, 15] ✓ |
+| `test_synthetic_archetypes_are_within_same_family` | Avec target=(5, 8), chaque archétype 100 % dans 1 seule famille ✓ |
+| `test_cluster_orders_groups_similar_pieces` | OF "tournage alu" et "fraisage inox" séparés en 2 familles ✓ |
+
+### Tests (13 ajoutés, 372 total)
+
+- 5 sur `agglomerative_cluster` (vide, singletons, fusion, threshold, validation)
+- 4 sur `order_distance` (identique = 0, totalement disjoint = 1, matériau seul,
+  overlap partiel)
+- 4 sur `cluster_orders_to_families` (singletons quand peu d'items, regroupement
+  similaire, critère 100 OF, archétypes 100 %)
+
+### Limites connues (V2)
+
+- O(n³) limite à n ≤ 200 OF en pratique. Au-delà, optimiser avec une matrice de
+  distance précalculée + tas binaire (O(n² log n)).
+- Le clustering ne tient pas compte de l'historique (replanifications). Une
+  V2 pourrait stabiliser les familles entre deux replans.
+
+---
+
 ## Étape 1.6 — Soft constraints en pénalités (côté solver) ✅ stabilisée 2026-04-30
 
 **Objectif** : pendant côté CP-SAT du module 3.6 (NL → JSON typé). Traduit les
@@ -453,8 +499,8 @@ basse, le scaffolding existant les accueille sans rework).
 
 1. **Phase 1.1.opt** — Migration setup pattern — **toujours prioritaire** avant
    scale réel (bottleneck identifié en 1.1d)
-2. **Phase 1.7** — Clustering automatique des familles de pièces
-3. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
+2. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
+   (utile pour fiabiliser le circuit breaker INFEASIBLE de Phase 2.4)
 
 ---
 
