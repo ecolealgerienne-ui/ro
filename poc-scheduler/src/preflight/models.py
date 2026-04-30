@@ -118,14 +118,20 @@ class PreflightReport(BaseModel):
     def should_call_llm(self) -> tuple[bool, str]:
         """Détermine si on doit continuer vers le LLM.
 
+        Ordre de check (du plus structurant au plus granulaire) :
+        1. CSV non parsable → on ne peut rien faire
+        2. Erreur globale fichier (ex: colonne requise manquante) → message plus informatif
+           que "aucune ligne valide", donc traité avant
+        3. Aucune ligne nettoyée disponible → cas résiduel
+        4. Majorité de lignes invalides → probablement un problème de format global
+
         Returns:
             (should_continue, reason)
         """
         if not self.csv_parseable:
             return False, "CSV non parsable — corriger l'export ERP"
-        if not self.cleaned_rows:
-            return False, "Aucune ligne valide après pre-flight"
-        # Si une erreur globale fichier (colonne requise manquante) → bloquant
+        # Erreur globale fichier (colonne requise manquante) traitée avant "aucune ligne valide"
+        # car le message est plus actionnable pour l'utilisateur.
         global_blocking = [
             e
             for e in self.errors
@@ -133,6 +139,8 @@ class PreflightReport(BaseModel):
         ]
         if global_blocking:
             return False, f"Erreur globale fichier : {global_blocking[0].description}"
+        if not self.cleaned_rows:
+            return False, "Aucune ligne valide après pre-flight"
         # Si > 50% des lignes parsées sont en erreur bloquante → format probablement faux
         if self.rows_parsed > 0 and self.blocking_count > self.rows_parsed * 0.5:
             return (
