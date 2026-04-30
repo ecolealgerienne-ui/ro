@@ -138,11 +138,16 @@ en `SoftConstraint`s pondérées et catégorisées.
 **Tests** : 4 tests avec `FakeLLMProvider` dont validation `extra="forbid"` sur
 catégorie hors enum, gestion `unrecognized`, rejet de phrases vides.
 
-**Validation empirique** (déjà acquise en expérimentation) :
-- 75/75 dès iteration 1 sur 15 phrases incluant 4 cas pièges critiques (« jamais »
-  catégoriel, formation temporaire, catégorie inédite, contrainte dure déguisée).
+**Validation empirique** :
+- Phase 2 (expérimentation) : 75/75 dès iteration 1 sur 15 phrases incluant 4 cas
+  pièges critiques (« jamais » catégoriel, formation temporaire, catégorie inédite,
+  contrainte dure déguisée).
+- Phase 3 (trial production via `agent_io.py` + claude.ai) : **10/10** sur 10 phrases
+  méca nouvelles, dont la phrase piège « Jamais de rectif sans certif » correctement
+  basculée en `unrecognized` avec suggestion pointant sur le pattern existant
+  `qualified_operator_constraint`. Voir `experiments/agents-trial/results.md`.
 
-**Statut** : ✅ stabilisée le 2026-04-30.
+**Statut** : ✅ stabilisée le 2026-04-30, **reproductibilité confirmée** sur inputs nouveaux.
 
 ---
 
