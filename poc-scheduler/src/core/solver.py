@@ -125,6 +125,7 @@ class JSSPSolver:
         instance: WorkshopInstance,
         *,
         soft_penalty_builder: (SoftPenaltyBuilder | None) = None,
+        makespan_weight: int = 1,
     ) -> SolverResult:
         """Construit le modèle CP-SAT et résout.
 
@@ -140,6 +141,10 @@ class JSSPSolver:
                 `SoftPenaltyVar`. Permet a la verticale de plugger ses
                 translators (cf. `verticals/<name>/soft_translators.py`). Si
                 None : objectif = makespan seul (comportement legacy).
+            makespan_weight: poids du makespan dans la fonction objectif
+                (cf. `WeightedObjectivePattern`). Defaut 1. Augmenter pour
+                rendre le makespan dominant face aux soft penalties ; 25 ou
+                125 pour aligner sur `ObjectivePriority.HIGH/CRITICAL`.
         """
         model = cp_model.CpModel()
         horizon = self._compute_horizon(instance)
@@ -273,12 +278,14 @@ class JSSPSolver:
                 )
             )
 
-        if soft_penalties:
+        # Si makespan_weight != 1 ou si soft penalties presentes -> WeightedObjectivePattern
+        if soft_penalties or makespan_weight != 1:
             makespan_var = WeightedObjectivePattern().apply(
                 model,
                 end_vars=last_op_ends,
                 horizon=horizon,
                 soft_penalties=soft_penalties,
+                makespan_weight=makespan_weight,
             )
             patterns_applied.append(WeightedObjectivePattern.name)
         else:

@@ -27,7 +27,7 @@ Note importante sur l'extraction du makespan apres solving :
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
@@ -112,3 +112,97 @@ class WeightedObjectivePattern(Pattern):
         terms.extend(sp.weight * sp.var for sp in soft_penalties)
         model.minimize(sum(terms))
         return makespan
+
+
+# ---------- Helpers engine generiques pour objectifs composites (Phase 1.2) ----------
+#
+# Ces helpers retournent des IntVars CP-SAT representant des objectifs universels
+# (tardiness, completion, stability). Vertical-agnostic : ils operent uniquement
+# sur des champs de `WorkshopInstance` et `op_vars` standards.
+#
+# La couche `src/core/objectives.py` les compose en un `SoftPenaltyBuilder`
+# selon les priorites nommees fournies par l'utilisateur.
+
+
+def aggregate_tardiness_var(
+    model: Any,
+    *,
+    instance: Any,  # WorkshopInstance — Any pour eviter import circulaire
+    op_vars: Mapping[tuple[int, int], Mapping[str, Any]],
+    horizon: int,
+) -> Any | None:
+    """Retourne une IntVar = somme des max(0, end - deadline) sur tous les jobs.
+
+    Filtre uniquement les jobs avec `deadline` defini. Retourne None si aucun
+    job n'a de deadline (rien a penaliser).
+    """
+    eligible = [j for j in instance.jobs if j.deadline is not None]
+    if not eligible:
+        return None
+    tardy_vars: list[Any] = []
+    for job in eligible:
+        last_idx = max(op.sequence_idx for op in job.operations)
+        last_end = op_vars[(job.job_id, last_idx)]["end"]
+        tardy = model.new_int_var(0, horizon, f"tardy_agg_j{job.job_id}")
+        model.add_max_equality(tardy, [0, last_end - job.deadline])
+        tardy_vars.append(tardy)
+    total = model.new_int_var(0, horizon * len(tardy_vars), "tardiness_aggregate_total")
+    model.add(total == sum(tardy_vars))
+    return total
+
+
+def aggregate_completion_var(
+    model: Any,
+    *,
+    instance: Any,
+    op_vars: Mapping[tuple[int, int], Mapping[str, Any]],
+    horizon: int,
+) -> Any | None:
+    """Retourne une IntVar = somme des fins de chaque job.
+
+    Different du makespan (qui minimise le max) : minimiser cette somme prefere
+    finir tot plusieurs jobs plutot qu'optimiser le dernier.
+    """
+    last_ends: list[Any] = []
+    for job in instance.jobs:
+        last_idx = max(op.sequence_idx for op in job.operations)
+        last_ends.append(op_vars[(job.job_id, last_idx)]["end"])
+    if not last_ends:
+        return None
+    total = model.new_int_var(0, horizon * len(last_ends), "completion_aggregate_total")
+    model.add(total == sum(last_ends))
+    return total
+
+
+def schedule_stability_var(
+    model: Any,
+    *,
+    op_vars: Mapping[tuple[int, int], Mapping[str, Any]],
+    horizon: int,
+    reference_schedule: Mapping[tuple[int, int], int],
+) -> Any | None:
+    """Retourne une IntVar = somme des |new_start - old_start| pour les ops du
+    reference schedule presentes dans op_vars.
+
+    Args:
+        reference_schedule: dict {(job_id, seq_idx): old_start_value} —
+            typiquement extrait d'un `SolverResult` precedent (replanification).
+
+    Returns:
+        IntVar de la deviation totale, ou None si aucune ref ne match `op_vars`.
+    """
+    deviations: list[Any] = []
+    for (job_id, seq_idx), old_start in reference_schedule.items():
+        if (job_id, seq_idx) not in op_vars:
+            continue
+        new_start = op_vars[(job_id, seq_idx)]["start"]
+        diff = model.new_int_var(-horizon, horizon, f"diff_j{job_id}_o{seq_idx}")
+        model.add(diff == new_start - old_start)
+        abs_diff = model.new_int_var(0, horizon, f"abs_diff_j{job_id}_o{seq_idx}")
+        model.add_abs_equality(abs_diff, diff)
+        deviations.append(abs_diff)
+    if not deviations:
+        return None
+    total = model.new_int_var(0, horizon * len(deviations), "stability_total")
+    model.add(total == sum(deviations))
+    return total

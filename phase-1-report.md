@@ -4,7 +4,7 @@
 > Documente les résultats concrets, décisions techniques et métriques de chaque étape.
 > Mis à jour à chaque étape stabilisée.
 
-**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.6 ✅ (6 translators / 4 idiomes), 1.1.opt + 1.2-1.5 + 1.7-1.8 en attente**
+**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.2 ✅, 1.6 ✅ (6 translators / 4 idiomes), 1.1.opt + 1.3-1.5 + 1.7-1.8 en attente**
 
 ---
 
@@ -153,6 +153,76 @@ Note : 168 reportés pendant exécution, 163 dans la liste — diff potentiellem
 
 ---
 
+## Étape 1.2 — Objectif composite via priorités nommées ✅ stabilisée 2026-04-30
+
+**Objectif** : permettre à l'utilisateur d'exprimer ses priorités relatives entre
+objectifs d'ordonnancement (makespan / tardiness / stability / early completion)
+sans manipuler des poids entiers bruts.
+
+### Livrables
+
+**Engine `src/core/objectives.py`** (vertical-agnostic) :
+- `ObjectivePriority` (StrEnum) : DISABLED / LOW / MEDIUM / HIGH / CRITICAL.
+- `PRIORITY_TO_WEIGHT` : mapping géométrique 0 / 1 / 5 / 25 / 125 (chaque cran
+  domine clairement le précédent sans rendre les autres négligeables).
+- `CompositeObjectiveSpec` (Pydantic strict, `extra="forbid"`) : 4 objectifs
+  universels avec defaults raisonnables (makespan=HIGH, tardiness=MEDIUM,
+  stability=DISABLED, early_completion=DISABLED).
+- `build_composite_soft_penalties()` : produit un `SoftPenaltyBuilder` qui
+  appelle les helpers engine selon les priorités, gère DISABLED, fusionne
+  avec un `vertical_extras` callable optionnel.
+
+**Helpers engine ajoutés à `soft_constraints.py`** :
+- `aggregate_tardiness_var(model, instance, op_vars, horizon) -> IntVar | None`
+- `aggregate_completion_var(model, instance, op_vars, horizon) -> IntVar | None`
+- `schedule_stability_var(model, op_vars, horizon, reference_schedule) -> IntVar | None`
+  — encode `Σ |new_start - old_start|` via `model.add_abs_equality()`.
+
+**Modification solver `JSSPSolver.solve()`** : accepte
+`makespan_weight: int = 1`. Si != 1 ou si soft penalties présentes → bascule
+sur `WeightedObjectivePattern`.
+
+### Tests (18 ajoutés, 316 total)
+
+- 6 sur les helpers engine (None si pas applicable, sums correctes)
+- 4 sur `CompositeObjectiveSpec` (defaults, makespan_weight floor, extra forbid)
+- 5 sur `build_composite_soft_penalties` (DISABLED tous, weights dérivés des
+  priorités, stability skip sans reference, fusion avec `vertical_extras`)
+- 3 d'intégration solver dont :
+  - `test_solver_accepts_makespan_weight` (bascule WeightedObjectivePattern)
+  - `test_solver_composite_tardiness_changes_priority_order` (deadlines serrées
+    finissent en premier avec tardiness=CRITICAL)
+  - **`test_solver_replanification_with_stability`** : `stability=CRITICAL`
+    + reference_schedule force le re-solve à retomber exactement sur le
+    reference (déviation 0).
+
+**Critère de sortie atteint** : "solveur accepte priorités relatives utilisateur".
+
+### Composabilité
+
+L'argument `vertical_extras` permet de combiner les 4 objectifs universels avec
+les soft NL-driven de la verticale méca (les 6 translators de Phase 1.6) :
+
+```python
+from src.core.objectives import build_composite_soft_penalties, CompositeObjectiveSpec
+from src.verticals.mech_workshop.soft_translators import translate_soft_constraints
+
+def mech_extras(*, model, instance, op_vars, horizon):
+    return translate_soft_constraints(
+        model, instance=instance, op_vars=op_vars, horizon=horizon,
+        soft_constraints=[...],  # depuis SoftConstraintsAgent (NL → JSON)
+        machine_name_to_id={...},
+    )
+
+spec = CompositeObjectiveSpec(makespan=HIGH, tardiness=CRITICAL, stability=LOW)
+builder = build_composite_soft_penalties(
+    spec, reference_schedule=previous_schedule, vertical_extras=mech_extras,
+)
+result = solver.solve(instance, soft_penalty_builder=builder, makespan_weight=spec.makespan_weight)
+```
+
+---
+
 ## Étape 1.6 — Soft constraints en pénalités (côté solver) ✅ stabilisée 2026-04-30
 
 **Objectif** : pendant côté CP-SAT du module 3.6 (NL → JSON typé). Traduit les
@@ -232,11 +302,13 @@ basse, le scaffolding existant les accueille sans rework).
 
 1. **Phase 1.1.opt** — Migration setup pattern — **toujours prioritaire** avant
    scale réel (bottleneck identifié en 1.1d)
-2. **Phase 1.2** — Objectif composite (calibration des poids inter-objectifs
-   makespan / tardiness / stabilité)
-3. **Phase 1.3-1.5** — Calibration, replanification, stabilité
-4. **Phase 1.7** — Clustering automatique des familles de pièces
-5. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
+2. **Phase 1.3** — Calibration dynamique des poids (auto-scale selon
+   caractéristiques d'instance pour éviter qu'un objectif n'écrase les autres)
+3. **Phase 1.4** — Replanification incrémentale (freeze partiel + solution hint)
+   — base déjà posée avec `schedule_stability_var` en 1.2
+4. **Phase 1.5** — Stabilité pondérée par criticité Tier 1/2/3
+5. **Phase 1.7** — Clustering automatique des familles de pièces
+6. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
 
 ---
 
