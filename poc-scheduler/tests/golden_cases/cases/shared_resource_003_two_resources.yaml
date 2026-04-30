@@ -1,0 +1,39 @@
+id: shared_resource_003_two_resources
+description: >-
+  Deux ressources partagees independantes. 4 jobs sur 4 machines, mais
+  res1 lie m0/m1 (cap 1) et res2 lie m2/m3 (cap 1). Chaque paire doit
+  serialiser : J0 puis J1, J2 puis J3. Optimum = 10 (5 + 5 sur chaque
+  paire en parallele).
+category: shared_resource
+instance:
+  name: golden_shared_resource_003_two_resources
+  jobs:
+    - job_id: 0
+      operations:
+        - {job_id: 0, sequence_idx: 0, machine_id: 0, duration: 5}
+    - job_id: 1
+      operations:
+        - {job_id: 1, sequence_idx: 0, machine_id: 1, duration: 5}
+    - job_id: 2
+      operations:
+        - {job_id: 2, sequence_idx: 0, machine_id: 2, duration: 5}
+    - job_id: 3
+      operations:
+        - {job_id: 3, sequence_idx: 0, machine_id: 3, duration: 5}
+  machines:
+    - {machine_id: 0}
+    - {machine_id: 1}
+    - {machine_id: 2}
+    - {machine_id: 3}
+  shared_resources:
+    - resource_name: res1_left
+      machine_ids: [0, 1]
+      max_concurrent: 1
+    - resource_name: res2_right
+      machine_ids: [2, 3]
+      max_concurrent: 1
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 10
+  makespan_max: 10
+  solve_time_s_max: 5.0

@@ -1,0 +1,40 @@
+id: operator_003_three_ops_two_operators
+description: >-
+  Goulot operateurs : 3 ops paralleles sur 3 machines, mais seulement
+  2 operateurs. Toutes ops qualif=[0,1] -> 2 ops en parallele, la 3e
+  attend la fin d'une autre. Optimum = 10 (5 puis 5).
+category: operator
+instance:
+  name: golden_operator_003_three_ops_two_operators
+  jobs:
+    - job_id: 0
+      operations:
+        - job_id: 0
+          sequence_idx: 0
+          machine_id: 0
+          duration: 5
+          qualified_operator_ids: [0, 1]
+    - job_id: 1
+      operations:
+        - job_id: 1
+          sequence_idx: 0
+          machine_id: 1
+          duration: 5
+          qualified_operator_ids: [0, 1]
+    - job_id: 2
+      operations:
+        - job_id: 2
+          sequence_idx: 0
+          machine_id: 2
+          duration: 5
+          qualified_operator_ids: [0, 1]
+  machines:
+    - {machine_id: 0}
+    - {machine_id: 1}
+    - {machine_id: 2}
+  n_operators: 2
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 10
+  makespan_max: 10
+  solve_time_s_max: 5.0

@@ -1,0 +1,25 @@
+id: setup_003_same_family_no_overhead
+description: >-
+  Verifie que des jobs de meme famille n'ajoutent PAS de setup malgre
+  une transition_matrix non vide (transition[0][0] = 0). 2 jobs (dur 3,
+  family 0) sur 1 machine = optimum 6, identique au cas sans setup.
+category: setup
+instance:
+  name: golden_setup_003_same_family_no_overhead
+  jobs:
+    - job_id: 0
+      operations:
+        - {job_id: 0, sequence_idx: 0, machine_id: 0, duration: 3, family_id: 0}
+    - job_id: 1
+      operations:
+        - {job_id: 1, sequence_idx: 0, machine_id: 0, duration: 3, family_id: 0}
+  machines:
+    - {machine_id: 0}
+  transition_matrix:
+    - [0, 5]
+    - [5, 0]
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 6
+  makespan_max: 6
+  solve_time_s_max: 5.0

@@ -1,0 +1,31 @@
+id: shared_resource_002_capacity_two
+description: >-
+  Shared resource avec capacite 2 (ex: 2 ponts roulants pour 3 machines).
+  3 ops paralleles dur 5, 2 peuvent s'executer simultanement. Une 3e
+  ops attend. Optimum = 10.
+category: shared_resource
+instance:
+  name: golden_shared_resource_002_capacity_two
+  jobs:
+    - job_id: 0
+      operations:
+        - {job_id: 0, sequence_idx: 0, machine_id: 0, duration: 5}
+    - job_id: 1
+      operations:
+        - {job_id: 1, sequence_idx: 0, machine_id: 1, duration: 5}
+    - job_id: 2
+      operations:
+        - {job_id: 2, sequence_idx: 0, machine_id: 2, duration: 5}
+  machines:
+    - {machine_id: 0}
+    - {machine_id: 1}
+    - {machine_id: 2}
+  shared_resources:
+    - resource_name: cranes_pair
+      machine_ids: [0, 1, 2]
+      max_concurrent: 2
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 10
+  makespan_max: 10
+  solve_time_s_max: 5.0

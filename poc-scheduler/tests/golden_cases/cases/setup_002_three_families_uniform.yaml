@@ -1,0 +1,29 @@
+id: setup_002_three_families_uniform
+description: >-
+  Setup avec 3 familles, transitions uniformes hors diagonale (= 4).
+  3 jobs (dur 2 chacun, familles 0/1/2) sur 1 machine. Quel que soit
+  l'ordre : sum(durees)=6 + 2 transitions x 4 = 14. Optimum = 14.
+category: setup
+instance:
+  name: golden_setup_002_three_families_uniform
+  jobs:
+    - job_id: 0
+      operations:
+        - {job_id: 0, sequence_idx: 0, machine_id: 0, duration: 2, family_id: 0}
+    - job_id: 1
+      operations:
+        - {job_id: 1, sequence_idx: 0, machine_id: 0, duration: 2, family_id: 1}
+    - job_id: 2
+      operations:
+        - {job_id: 2, sequence_idx: 0, machine_id: 0, duration: 2, family_id: 2}
+  machines:
+    - {machine_id: 0}
+  transition_matrix:
+    - [0, 4, 4]
+    - [4, 0, 4]
+    - [4, 4, 0]
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 14
+  makespan_max: 14
+  solve_time_s_max: 5.0

@@ -1,0 +1,21 @@
+id: baseline_002_jssp_1job_2ops
+description: >-
+  Edge minimal : 1 job, 2 operations sequentielles sur 2 machines
+  differentes. Optimum = somme des durees = 8 (aucune parallelisation
+  possible).
+category: baseline_jssp
+instance:
+  name: golden_baseline_002_jssp_1job_2ops
+  jobs:
+    - job_id: 0
+      operations:
+        - {job_id: 0, sequence_idx: 0, machine_id: 0, duration: 5}
+        - {job_id: 0, sequence_idx: 1, machine_id: 1, duration: 3}
+  machines:
+    - {machine_id: 0}
+    - {machine_id: 1}
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 8
+  makespan_max: 8
+  solve_time_s_max: 5.0

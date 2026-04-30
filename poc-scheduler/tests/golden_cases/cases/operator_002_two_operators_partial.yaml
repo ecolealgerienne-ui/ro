@@ -1,0 +1,32 @@
+id: operator_002_two_operators_partial
+description: >-
+  Qualified operators : 2 operateurs, 2 ops paralleles. J0 qualif=[0,1]
+  (les deux operateurs OK), J1 qualif=[0] (seul op0). Optimum = 5
+  (J1 prend op0, J0 prend op1, parallelisation totale).
+category: operator
+instance:
+  name: golden_operator_002_two_operators_partial
+  jobs:
+    - job_id: 0
+      operations:
+        - job_id: 0
+          sequence_idx: 0
+          machine_id: 0
+          duration: 5
+          qualified_operator_ids: [0, 1]
+    - job_id: 1
+      operations:
+        - job_id: 1
+          sequence_idx: 0
+          machine_id: 1
+          duration: 5
+          qualified_operator_ids: [0]
+  machines:
+    - {machine_id: 0}
+    - {machine_id: 1}
+  n_operators: 2
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 5
+  makespan_max: 5
+  solve_time_s_max: 5.0

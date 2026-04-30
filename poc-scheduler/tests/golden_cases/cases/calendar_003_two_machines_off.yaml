@@ -1,0 +1,30 @@
+id: calendar_003_two_machines_off
+description: >-
+  Calendrier multi-machines : 2 jobs paralleles. m0 indispo [2,5],
+  m1 indispo [0,3]. J0 sur m0 doit attendre 5 -> ends 10. J1 sur m1
+  doit attendre 3 -> ends 8. Makespan = max(10, 8) = 10.
+category: calendar
+instance:
+  name: golden_calendar_003_two_machines_off
+  jobs:
+    - job_id: 0
+      operations:
+        - {job_id: 0, sequence_idx: 0, machine_id: 0, duration: 5}
+    - job_id: 1
+      operations:
+        - {job_id: 1, sequence_idx: 0, machine_id: 1, duration: 5}
+  machines:
+    - {machine_id: 0}
+    - {machine_id: 1}
+  machine_unavailability:
+    - machine_id: 0
+      periods:
+        - [2, 5]
+    - machine_id: 1
+      periods:
+        - [0, 3]
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 10
+  makespan_max: 10
+  solve_time_s_max: 5.0
