@@ -128,6 +128,6 @@ narratifs (`../phase-{0,1,2}-report.md`).
 **Étape courante : Phase 2 — Trust layer technique.**
 
 - ✅ Phase 0 stabilisée (Gate 0 ✓ : OR-Tools validé sur Taillard)
-- 🟡 Phase 1 en cours (1.1 ✓, 1.2 ✓ composite, 1.3 ✓ calibration, 1.4 ✓ replanif, 1.5 ✓ tier, 1.6 ✓ soft constraints, 1.7 ✓ clustering, **1.8 ✓** MIS ; seule 1.1.opt restante)
+- ✅ **Phase 1 close** (9/9 étapes traitées : 1.1, 1.2 composite, 1.3 calibration, 1.4 replanif, 1.5 tier, 1.6 soft constraints, 1.7 clustering, 1.8 MIS ; **1.1.opt** ✓ critère assoupli — migration `setup-dependent` vers `add_circuit` livrée, gain mesurable 30 % → 40 % feasibility, target 80 % hors d'atteinte sans redesign solveur)
 - ✅ **Phase 2 stabilisée + Gate 1 ✓** (trust layer technique livrée, 0 erreur silencieuse / 20 ateliers tests)
 - ✅ **Phase 3 stabilisée** (3.3-3.8 livrés, 13 trials réels OK, prompts validés ; 3.1/3.2 MCP abandonnés)

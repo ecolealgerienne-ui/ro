@@ -212,14 +212,26 @@ class JSSPSolver:
                 )
             patterns_applied.append(UnavailableIntervalsPattern.name)
 
-        # --- NoOverlap par machine (toujours, fusionne ops + indispo) ---
+        # --- NoOverlap par machine ---
+        # Quand setup-dependent est actif, le `add_circuit` du SetupPattern (Phase 1.1.opt)
+        # subsume la disjonction op<>op (les transitions ≥ 0 forcent end[i] ≤ start[j]
+        # pour deux ops successifs). On garde alors NoOverlap **uniquement avec les
+        # indisponibilités** : op<>unavail (les unavail ne sont pas dans le circuit).
+        # Sinon (cas par défaut sans setup), NoOverlap fusionne ops + indispo classiquement.
         no_overlap_pattern = NoOverlapMachinePattern()
+        setup_active = instance.has_setup_constraints
         for machine_id, intervals in intervals_per_machine.items():
-            combined = intervals + unavail_per_machine.get(machine_id, [])
-            no_overlap_pattern.apply(model, intervals=combined)
+            unavail = unavail_per_machine.get(machine_id, [])
+            if setup_active and len(intervals) > 1:
+                # Circuit gérera op<>op. NoOverlap garde juste op + unavail (si présents).
+                if unavail:
+                    no_overlap_pattern.apply(model, intervals=intervals + unavail)
+            else:
+                combined = intervals + unavail
+                no_overlap_pattern.apply(model, intervals=combined)
         patterns_applied.append(NoOverlapMachinePattern.name)
 
-        # --- Setup-dependent (si matrice non vide), en plus du NoOverlap ---
+        # --- Setup-dependent (si matrice non vide) — circuit hamiltonien par machine ---
         if instance.has_setup_constraints:
             setup_pattern = SequenceDependentSetupPattern()
             for _machine_id, op_keys in ops_per_machine.items():
