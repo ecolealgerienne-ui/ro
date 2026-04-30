@@ -15,6 +15,8 @@ de sous-traitance mécanique :
   haut niveau métier) en `WorkshopInstance` (modèle JSSP générique du moteur).
 - **Configuration pre-flight** (`preflight_config.py`) : patterns de colonnes
   ERP méca, champs canoniques, fournis au moteur pre-flight générique.
+- **Calibration scoring** (`scoring_config.py`) : poids des métriques de
+  confiance, fournis au moteur de scoring générique.
 
 Les imports admis :
 
@@ -59,6 +61,7 @@ from src.verticals.mech_workshop.preflight_config import (
     MECH_COLUMN_PATTERNS,
     MECH_REQUIRED_CANONICAL_FIELDS,
 )
+from src.verticals.mech_workshop.scoring_config import MECH_CONFIDENCE_WEIGHTS
 
 __all__ = [
     "CLIENT_NAMES_BY_TIER",
@@ -70,6 +73,7 @@ __all__ = [
     "MATERIAL_DIFFICULTY_MULTIPLIER",
     "MECH_CANONICAL_FIELDS",
     "MECH_COLUMN_PATTERNS",
+    "MECH_CONFIDENCE_WEIGHTS",
     "MECH_REQUIRED_CANONICAL_FIELDS",
     "N_FAMILIES",
     "OPERATIONS_CANONICAL",
