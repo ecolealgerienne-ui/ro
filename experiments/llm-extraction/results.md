@@ -235,6 +235,77 @@ Aucune des deux formes canoniques (`tournage_ebauche`, `tournage_finition`) n'es
 
 ---
 
+## Itération 5 — `prompt_v3` + pre-flight × `fixture_04_anomalies` (à venir)
+
+**Date** : (à compléter)
+**Modèle** : Claude Sonnet 4.6 (web claude.ai)
+**Pipeline** : `preflight (Python) → prompt_v3 → Claude → JSON`
+**Fixture** : `fixture_04_anomalies.csv`
+
+**Hypothèse à valider** : avec le pre-flight en amont, on conserve le score 15/15 sur F4 tout en réduisant le prompt de ~30 % et en éliminant ~50 % de l'effort de détection d'anomalies côté LLM.
+
+### Procédure
+
+```bash
+# Génère le prompt complet et l'écrit dans un fichier
+cd ~/ro/poc-scheduler
+uv run python scripts/llm_prompt_builder.py \
+    ../experiments/llm-extraction/fixture_04_anomalies.csv \
+    --today 2026-04-30 \
+    --output /tmp/prompt_f4_v3.txt
+
+# Le fichier est prêt à coller dans Claude.ai
+```
+
+### Anomalies attendues dans le rendu final
+
+**Pré-détectées par pre-flight (Python, déjà dans `anomalies` quand le LLM démarre) — 3** :
+- `duration_negative_or_zero` ligne 1 (raw -30)
+- `duration_negative_or_zero` ligne 2 (raw 0)
+- `date_in_past` ligne 4 (raw 2025-01-01)
+
+**À détecter par LLM (sémantique) — 3** :
+- `matiere_inconnue` (OF-103, ZorglubMetal)
+- `duree_excessive_interne` (OF-105, 2000 min)
+- `of_doublon_incoherent` (OF-107, valeurs incohérentes)
+
+**Total dans `anomalies` final** : 6 (mêmes 6 que les itérations précédentes — comportement préservé).
+
+### Cas-pièges (NE doivent PAS être flaggés par le LLM)
+
+- OF-100 propre
+- OF-106 ébavurage 5 min (déjà filtré par anti-zèle dans v2/v3)
+- OF-106 marquage 2 min
+
+### Output produit par Claude
+
+```json
+[à coller ici]
+```
+
+### Évaluation : __/15
+
+(à remplir après test)
+
+### Critères spécifiques itération 5
+
+- **Anomalies pre-flight préservées** : les 3 warnings injectés se retrouvent bien dans `anomalies` final
+- **Anomalies sémantiques détectées** : 3/3
+- **Aucune redétection** des anomalies déjà flaggées par pre-flight (pas de doublon dans `anomalies`)
+- **Réduction de tokens output** observée vs itération 3 (F4 v2)
+
+### Comparaison taille prompt v2 vs v3
+
+| Métrique | prompt_v2 | prompt_v3 + preflight | Gain |
+|----------|-----------|------------------------|------|
+| Lignes prompt | ~100 | ~70 | -30 % |
+| Tokens approximatifs | ~3000 | ~2000 | -33 % |
+| Anomalies à détecter par LLM | 11 types | 7 types | -36 % |
+
+(Mesures précises à compléter à l'itération.)
+
+---
+
 # 🏁 Bilan global — expérimentation clôturée
 
 | Test | Prompt | Score | Verdict |
@@ -288,3 +359,4 @@ Aucune des deux formes canoniques (`tournage_ebauche`, `tournage_finition`) n'es
 | 2026-04-30 | Note pour l'API : spécifier comportement sur OF doublons | Claude fusionne intelligemment, mais le choix doit être explicite |
 | 2026-04-30 | F3 prompt_v2 = 15/15 | Robustesse format ERP réel validée — clôture de l'expérimentation |
 | 2026-04-30 | Expérimentation clôturée — risque LLM extraction levé | 45/45 sur 3 fixtures couvrant le spectre. prompt_v2 référence pour Phase 3.5 |
+| 2026-04-30 | Réouverture pour ajouter pre-flight + prompt_v3 | Application du pattern "code déterministe avant LLM". Module `src/preflight/` intégré, prompt allégé. À tester avec itération 5. |
