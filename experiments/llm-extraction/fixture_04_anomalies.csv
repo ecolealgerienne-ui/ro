@@ -1,0 +1,11 @@
+OF;Client;Piece;Matiere;Operation;Machine;Duree_min;Date_livraison
+OF-2026-100;Safran;Bague_propre;Aluminium 7075;Tournage ebauche;TOUR-01;45;2026-05-15
+OF-2026-101;PSA;Support_negatif;Acier 42CrMo4;Fraisage ebauche;FRAIS-02;-30;2026-05-12
+OF-2026-102;Liebherr;Pivot_zero;Inox 316L;Tournage finition;TOUR-02;0;2026-05-18
+OF-2026-103;Safran;Piece_matinconnue;ZorglubMetal;Fraisage finition;FRAIS-01;30;2026-05-14
+OF-2026-104;PSA;Plaque_passee;Aluminium 7075;Percage;PERC-01;15;2025-01-01
+OF-2026-105;Safran;Piece_excess;Titane TA6V;Fraisage 5 axes;FRAIS-5X-01;2000;2026-05-20
+OF-2026-106;Safran;Piece_normale_courte;Aluminium 7075;Ebavurage;FRAIS-02;5;2026-05-15
+OF-2026-106;Safran;Piece_normale_courte;Aluminium 7075;Marquage;FRAIS-01;2;2026-05-15
+OF-2026-107;Safran;Piece_doublon;Aluminium 7075;Tournage ebauche;TOUR-01;30;2026-05-15
+OF-2026-107;Liebherr;Piece_DIFFERENTE;Inox 316L;Fraisage finition;FRAIS-01;25;2026-05-15

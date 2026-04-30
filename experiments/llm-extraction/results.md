@@ -80,12 +80,67 @@ Claude a appliqué un "common sense industriel" implicite ("durée courte sur ma
 
 ## Itération 2 — `prompt_v2` × `fixture_01_simple`
 
-**Date** : (à compléter)
+**Date** : 2026-04-30
 **Modèle** : Claude Sonnet 4.6 (web claude.ai)
 **Prompt** : `prompt_v2.md`
 **Fixture** : `fixture_01_simple.csv`
 
 **Hypothèse à valider** : avec les seuils explicites + règle anti-zèle, `anomalies` doit être `[]` sur F1.
+
+### Output produit par Claude
+
+JSON structurellement identique à l'itération 1, mais **`anomalies: []`** (les 2 fausses positives sont éliminées).
+
+### Évaluation : 15/15
+
+Tous les critères passent désormais, dont **A3** (pas de fausses anomalies).
+
+### Observations
+
+- Les seuils numériques stricts ont fonctionné comme attendu
+- La règle anti-zèle avec plages normales explicites a court-circuité le "common sense industriel" qui causait les faux positifs
+- Pas de régression sur les autres critères — prompt_v2 ≥ prompt_v1 partout
+- **Hypothèse validée** : on peut réduire le sur-zèle sans perte de qualité
+
+### Question ouverte → F4
+
+A-t-on tué la VRAIE détection en réduisant le sur-zèle ? À tester avec `fixture_04_anomalies.csv`.
+
+---
+
+## Itération 3 — `prompt_v2` × `fixture_04_anomalies` (à venir)
+
+**Date** : (à compléter)
+**Modèle** : Claude Sonnet 4.6 (web claude.ai)
+**Prompt** : `prompt_v2.md`
+**Fixture** : `fixture_04_anomalies.csv`
+
+**Hypothèse à valider** : Claude détecte les 6 vraies anomalies SANS générer de fausses positives sur les cas-pièges.
+
+### Anomalies attendues (6)
+
+| Ligne | Type attendu | Description |
+|-------|--------------|-------------|
+| OF-2026-101 | `duree_negative` | Durée -30 min |
+| OF-2026-102 | `duree_zero` | Durée 0 sur tournage_finition |
+| OF-2026-103 | `matiere_inconnue` | "ZorglubMetal" hors liste canonique |
+| OF-2026-104 | `date_passee` | deadline 2025-01-01 (avant aujourd'hui) |
+| OF-2026-105 | `duree_excessive_interne` | 2000 min > 1440 min sur fraisage_5axes |
+| OF-2026-107 | `of_doublon_incoherent` | Même OF avec client/pièce/matière différents |
+
+### Cas-pièges (NE doivent PAS être flaggés — 3)
+
+| Ligne | Pourquoi pas anomalie |
+|-------|----------------------|
+| OF-2026-100 | OF parfaitement propre, control case |
+| OF-2026-106 ébavurage 5 min | Plage normale 5-30 min |
+| OF-2026-106 marquage 2 min | Plage normale 1-10 min |
+
+### Comportements attendus sur OF-2026-103 (matière inconnue)
+
+- `material_normalized` doit garder la valeur originale `ZorglubMetal` (pas inventer)
+- L'OF doit quand même apparaître dans `orders`
+- Une anomalie `matiere_inconnue` listée
 
 ### Output produit par Claude
 
@@ -95,11 +150,13 @@ Claude a appliqué un "common sense industriel" implicite ("durée courte sur ma
 
 ### Évaluation : __/15
 
-(remplir avec la même grille)
+(remplir après test)
 
-### Observations
+### Critères spécifiques F4
 
-- 
+- **Détection** : 6/6 vraies anomalies trouvées ?
+- **Précision** : 0 fausses positives ? (les 3 cas-pièges)
+- **Type d'anomalie correct** ? (chaque anomalie a le bon `type` selon la liste)
 
 ---
 
@@ -107,8 +164,8 @@ Claude a appliqué un "common sense industriel" implicite ("durée courte sur ma
 
 | Prompt | F1 | F2 | F3 | F4 | F5 | Notes |
 |--------|----|----|----|----|----|-------|
-| v1 | 14/15 | — | — | — | — | sur-zèle sur A3 (2 fausses positives) |
-| v2 | __/15 | — | — | — | — | seuils stricts + anti-zèle |
+| v1 | 14/15 | — | — | — | — | sur-zèle sur A3 |
+| v2 | **15/15** | — | — | __/15 | — | seuils stricts, à tester sur F4 |
 
 ---
 
@@ -117,3 +174,5 @@ Claude a appliqué un "common sense industriel" implicite ("durée courte sur ma
 | Date | Décision | Raison |
 |------|----------|--------|
 | 2026-04-30 | Passer à prompt_v2 avec seuils stricts | Sur-zèle observé sur F1 — critique pour le trust layer |
+| 2026-04-30 | F1 prompt_v2 = 15/15, sur-zèle éliminé | Confirme que le cadrage par seuils numériques fonctionne |
+| 2026-04-30 | Ajout F4 pour tester la VRAIE détection | Vérifier qu'on n'a pas tué le filet de sécurité en réduisant le sur-zèle |
