@@ -12,7 +12,7 @@
 2. [Stack technologique](#2-stack-technologique)
 3. [Modèle de données](#3-modèle-de-données-postgresql)
 4. [Architecture des agents LLM](#4-architecture-des-agents-llm)
-5. [Le serveur MCP](#5-le-serveur-mcp)
+5. [Couche LLM — Tool use natif Claude API](#5-couche-llm--tool-use-natif-claude-api) *(ex « Serveur MCP », repositionné 2026-04-30)*
 6. [Le moteur OR-Tools (CP-SAT)](#6-le-moteur-or-tools-cp-sat)
 7. [Le module Data Quality](#7-le-module-data-quality)
 8. [Le trust layer technique](#8-le-trust-layer-technique)
@@ -286,7 +286,19 @@ Les outils MCP `get_model_snapshot`, `diff_models`, `rollback_model` opèrent su
 
 ---
 
-## 5. Le serveur MCP
+## 5. Couche LLM — Tool use natif Claude API
+
+> **⚠️ Décision 2026-04-30 — Repositionnement** : la version V3 initiale prévoyait un **serveur MCP**. Cette approche est **abandonnée** : pour une SaaS B2B où le backend orchestre lui-même les appels Claude API (les deux bouts du dialogue LLM ↔ outils sont sous notre contrôle), MCP est un protocole de transport qui ajoute de la complexité sans valeur produit. Le **tool use natif de l'API Claude** couvre tous les besoins, est plus portable (Mistral / GPT en fallback), et concentre l'effort sur ce qui compte : les **workflows agents** (extraction, traduction NL → soft constraints, explication INFEASIBLE, modifications conversationnelles).
+>
+> Les sections §5.1 à §5.4 ci-dessous décrivent encore l'ancienne approche MCP. Elles seront réécrites en début de Phase 3 effective. **Ce qui reste pertinent dès maintenant** :
+>
+> - **§5.2 — la liste fonctionnelle des "outils"** : les 14 tools listés correspondent aux capacités que les agents devront exposer à Claude. Ils deviennent des fonctions Python du backend, déclarées en `tools=[...]` dans les appels API, pas des outils MCP.
+> - **§5.3 — la bibliothèque de patterns CP-SAT** : reste valide telle quelle, déjà en partie implémentée dans `src/core/pattern.py`.
+> - **§5.4 — la protection contre l'auto-pilote LLM** : reste valide, juste à porter au niveau de la couche tool use plutôt qu'au niveau du serveur MCP.
+>
+> Voir le **journal des décisions** dans `v0-status.md` (entrée 2026-04-30 — "Repositionnement Phase 3 : abandon du serveur MCP") pour le détail du raisonnement.
+
+---
 
 ### 5.1 Implémentation
 

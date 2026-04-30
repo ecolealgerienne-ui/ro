@@ -263,7 +263,7 @@ place (3 garde-fous convergents : `validate_schedule` hard gate dans scoring,
    expérimentation, prêt à coder).
 2. **Phase 1.1.opt** — Migration `setup-dependent` vers `AddNoOverlap` natif
    (prioritaire avant scale réel sur des ateliers méca complets).
-3. **Phase 3** — Agents LLM + serveur MCP (tous les risques tech LLM levés).
+3. **Phase 3** — Agents LLM via tool use natif Claude API (serveur MCP abandonné le 2026-04-30 — voir journal). Les workflows agents 3.4 → 3.8 sont la vraie valeur ; les risques LLM majeurs sont déjà levés en expérimentation.
 
 ### Gate 1 ✅ — validé
 

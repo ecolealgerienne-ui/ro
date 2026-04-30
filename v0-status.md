@@ -94,20 +94,22 @@
 
 ---
 
-## Phase 3 — Agents LLM + serveur MCP
+## Phase 3 — Agents LLM (tool use natif Claude API)
 
-> Objectif : couche IA disciplinée, cantonnée à extraction / explication. Aucune génération de code OR-Tools.
+> Objectif : couche IA disciplinée, cantonnée à extraction / explication / traduction NL. Aucune génération de code OR-Tools.
+>
+> **Repositionnement 2026-04-30** : MCP server abandonné (voir journal des décisions). Pour une SaaS où le backend orchestre les appels LLM, le tool use natif de l'API Claude couvre tous les besoins sans la complexité protocolaire MCP. La valeur produit est dans les **workflows agents** (3.4 → 3.8), pas dans le transport.
 
 | # | Étape | Statut | Démarrage | Fin | Critère de sortie | Notes |
 |---|-------|--------|-----------|-----|-------------------|-------|
-| 3.1 | Serveur MCP avec outils de modélisation (6 outils) | ⬜ à faire | — | — | Tests d'appel direct via SDK MCP | — |
-| 3.2 | Outils MCP versioning (3) + exécution/explication (5) | ⬜ à faire | — | — | Couverture complète spec 5.2 | — |
-| 3.3 | Abstraction `LLMProvider` (Claude primaire, Mistral fallback) | ⬜ à faire | — | — | Suite tests multi-modèles | — |
-| 3.4 | Agent extraction — questionnaire arborescent → spec structurée | ⬜ à faire | — | — | 10 cas types, validation Pydantic stricte | — |
-| 3.5 | Agent extraction — Excel/CSV + fuzzy matching + Data Quality | ⬜ à faire | — | — | > 90% lignes correctement classées sur 5 fichiers ERP | — |
-| 3.6 | Traduction soft constraints NL → pénalités | ⬜ à faire | — | — | 20 phrases types correctement traduites | — |
-| 3.7 | Agent explication — placement OF + INFEASIBLE NL | ⬜ à faire | — | — | Évaluation manuelle sur 30 cas | — |
-| 3.8 | Modifications conversationnelles ("priorité 1 sur Safran") | ⬜ à faire | — | — | 10 modifications types testées avec validation humaine | — |
+| 3.1 | ~~Serveur MCP avec outils de modélisation (6 outils)~~ | ❌ abandonnée | — | 2026-04-30 | — | Décision 2026-04-30 : MCP server retiré du scope. Tool use natif Claude API suffit pour cette SaaS (backend contrôle les deux bouts). Voir journal. |
+| 3.2 | ~~Outils MCP versioning (3) + exécution/explication (5)~~ | ❌ abandonnée | — | 2026-04-30 | — | Idem. Les "outils" deviennent des fonctions Python du backend, exposées comme `tools=[...]` dans les appels Claude API. La liste fonctionnelle reste pertinente (cf. specs-techniques-v3 §5.2). |
+| 3.3 | Client Claude API + tool use natif + abstraction `LLMProvider` (Claude primaire, Mistral fallback léger) | ⬜ à faire | — | — | Suite tests multi-modèles, swap provider testé | Réduit en scope : pas de framework, juste 1 interface fine pour pouvoir basculer si Anthropic indispo en prod. |
+| 3.4 | Agent extraction — questionnaire arborescent → spec structurée | ⬜ à faire | — | — | 10 cas types, validation Pydantic stricte | Risque LLM levé en expérimentation. |
+| 3.5 | Agent extraction — Excel/CSV + fuzzy matching + Data Quality | ⬜ à faire | — | — | > 90% lignes correctement classées sur 5 fichiers ERP | Risque LLM levé : 75/75 sur prompt_v2/v3 + preflight. |
+| 3.6 | Traduction soft constraints NL → pénalités | ⬜ à faire | — | — | 20 phrases types correctement traduites | Risque LLM levé : 75/75 dès iteration 1. |
+| 3.7 | Agent explication — placement OF + INFEASIBLE NL | ⬜ à faire | — | — | Évaluation manuelle sur 30 cas | Risque modéré : à tester. |
+| 3.8 | Modifications conversationnelles ("priorité 1 sur Safran") | ⬜ à faire | — | — | 10 modifications types testées avec validation humaine | Risque modéré : à tester. |
 
 ---
 
@@ -215,6 +217,7 @@
 | 2026-04-30 | **Phase 2.3 — simulation opérationnelle livrée** | Engine `src/core/simulation.py` calcule métriques machine (setup_ratio, micro_pause_count, family_transitions, idle_time) et job (fragmentation_ratio), produit un verdict ACCEPT/WARN/REJECT avec règles déclaratives. Coherence verdict ↔ violations garantie par `model_validator`. Seuils méca justifiés en docstring (à recalibrer post-pilotes). 11 tests. | Le verdict de simulation alimentera le circuit breaker (2.4) et le pipeline (2.5). Permet de capturer les "plannings refusés par le chef d'atelier" que le solveur seul accepterait (utilisation creuse, fragmentation excessive, setup délirant). |
 | 2026-04-30 | **Phase 2.4 — circuit breaker INFEASIBLE livré** | Engine `src/core/circuit_breaker.py` orchestre une suite finie de tentatives (3 budgets temps croissants par défaut). Arrêt précoce si CP-SAT prouve l'infaisabilité (inutile de retenter). Fallback `mis_extractor` injectable, stub documenté en attendant Phase 1.8. Garantie anti-boucle infinie : `n_attempts ≤ len(time_budgets_s)`. Cas INFEASIBLE construit proprement (1 op dur 10 + unavailability fragmentant la dispo). 11 tests dont monkeypatch JSSPSolver pour le chemin EXHAUSTED. | Trois sorties déterministes : SOLVED, INFEASIBLE (CP-SAT prouve), EXHAUSTED (timeout sur tous les budgets). Le pipeline 2.5 utilisera ces 3 outcomes pour décider quoi faire (retry / escalade humaine / explication LLM Phase 3.7). |
 | 2026-04-30 | **Phase 2.5 — pipeline complet livré + Gate 1 ✅** | Engine `src/core/pipeline.py` agrège les 4 modules (circuit_breaker, simulation, scoring, validate_schedule) en une décision finale ACCEPT/WARN/REJECT avec 5 règles de priorité descendante : (1) circuit_breaker non SOLVED → REJECT, (2) score gate failed → REJECT, (3) simulation REJECT → REJECT, (4) simulation WARN → WARN, (5) sinon → ACCEPT. Doctrine : un seul garde-fou rouge suffit à refuser. **Test E2E sur 20 ateliers méca synthétiques : 0 erreur silencieuse**. 7 tests dont l'E2E Gate 1. | **Phase 2 entièrement stabilisée**. La trust layer technique est livrée : 4 modules engine génériques (golden cases, scoring, simulation, circuit breaker, pipeline) + 3 modules de calibration verticale méca. Aucune erreur silencieuse n'a passé sur 20 ateliers tests. Le pattern engine ↔ vertical a tenu la discipline sur 4 modules consécutifs. Phase 1.6 (soft constraints) ou Phase 3 (agents LLM) ouvrables ; 1.1.opt reste prioritaire avant le scale réel. |
+| 2026-04-30 | **Repositionnement Phase 3 : abandon du serveur MCP** | Pour cette SaaS B2B où le backend orchestre lui-même les appels Claude API, MCP est un protocole de transport qui n'apporte pas de valeur produit : le tool use natif de l'API Claude couvre tous les besoins (extraction, modélisation, explication, modifications conversationnelles) sans la complexité d'un serveur MCP, sans le lock-in Anthropic supplémentaire, sans transport JSON-RPC à maintenir. MCP a sa valeur pour des intégrations tierces (Claude Desktop, IDE plugins, partage d'outils inter-produits) — ce n'est pas notre cas. Étapes 3.1 et 3.2 marquées ❌ abandonnées. 3.3 réduit en scope : juste une abstraction provider fine pour pouvoir basculer Mistral si Anthropic indispo, pas un framework. La liste fonctionnelle des "outils" (specs-techniques-v3 §5.2) reste pertinente : ils deviennent des fonctions Python passées en `tools=[...]` aux appels Claude API. | La valeur produit Phase 3 est dans les workflows agents (3.4 → 3.8), pas dans le transport. Tous les risques LLM sur 3.4/3.5/3.6 ont été levés en expérimentation no-code. 3.7/3.8 restent à dérisquer (modéré). Section 5 de specs-techniques-v3 à réécrire en début de Phase 3 (un bandeau de décision est ajouté pour signaler le repositionnement). |
 
 ---
 
@@ -224,7 +227,7 @@
 
 | Date | Phase impactée | Étape | Raison | Action |
 |------|---------------|-------|--------|--------|
-| — | — | — | — | — |
+| 2026-04-30 | Phase 3 | 3.1 + 3.2 | Le serveur MCP était une cosmétique technique sans valeur produit pour cette SaaS B2B (backend orchestre lui-même les appels Claude API). Surcoût d'un protocole + lock-in Anthropic + dispersion d'effort vs. la vraie valeur (agents 3.4 → 3.8). | 3.1 et 3.2 marquées ❌ abandonnées. 3.3 réduit en scope (juste un client Claude API + tool use natif + interface fine pour fallback). Bandeau de décision ajouté en tête de specs-techniques-v3 §5. Réécriture profonde de §5 différée au début de Phase 3 effective. |
 
 ---
 

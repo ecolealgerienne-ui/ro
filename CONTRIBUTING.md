@@ -34,7 +34,7 @@ ro/
 ├── .gitattributes
 ├── .pre-commit-config.yaml
 ├── poc-scheduler/        # Phase 0 — POC OR-Tools
-├── solver-service/       # Phases 1-3 — microservice Python (CP-SAT + agents + MCP)
+├── solver-service/       # Phases 1-3 — microservice Python (CP-SAT + agents LLM via tool use Claude API)
 ├── backend/              # Phase 4 — NestJS API
 ├── frontend/             # Phase 5 — Next.js chef d'atelier
 ├── pwa/                  # Phase 6 — PWA opérateur
@@ -81,7 +81,7 @@ Format : `<type>(<scope>): <sujet>`
 - `build` — système de build
 
 **Scopes recommandés** (selon composant) :
-`poc`, `solver`, `mcp`, `agents`, `backend`, `frontend`, `pwa`, `infra`, `docs`, `tests`.
+`poc`, `solver`, `agents`, `llm`, `backend`, `frontend`, `pwa`, `infra`, `docs`, `tests`.
 
 **Exemples :**
 ```
