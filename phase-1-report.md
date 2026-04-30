@@ -4,7 +4,7 @@
 > Documente les résultats concrets, décisions techniques et métriques de chaque étape.
 > Mis à jour à chaque étape stabilisée.
 
-**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.2 ✅, 1.3 ✅, 1.6 ✅ (6 translators / 4 idiomes), 1.1.opt + 1.4-1.5 + 1.7-1.8 en attente**
+**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.2 ✅, 1.3 ✅, 1.4 ✅, 1.6 ✅, 1.1.opt + 1.5 + 1.7-1.8 en attente**
 
 ---
 
@@ -280,6 +280,56 @@ l'autre.
 
 ---
 
+## Étape 1.4 — Replanification incrémentale (freeze + hint) ✅ stabilisée 2026-04-30
+
+**Objectif** : accélérer le re-solve sur petite perturbation (ajout OF, panne
+machine, décalage deadline) en (a) verrouillant les ops déjà démarrées et
+(b) passant le planning précédent en hint à CP-SAT.
+
+### Verticalité préservée — 8e fois
+
+| Couche | Responsabilité |
+|---|---|
+| **Engine** (`src/core/replanification.py`) | Mécanisme universel : `FreezeSpec`, `SolutionHintSpec`, `apply_freeze`, `apply_solution_hint`, `derive_freeze_and_hint_from_previous`. Tout opère sur `(job_id, seq_idx)` — clés universelles. Aucune catégorie métier câblée. |
+| **Verticale** | Peut spécialiser si besoin (ex: règle métier *"freeze tous les setups en cours en méca pour ne pas casser les nuits de prod"*). V1 n'en a pas besoin : la dérivation générique `start ≤ now → freeze` couvre 90 % des cas. |
+
+### Livrables
+
+- **`FreezeSpec`** (Pydantic frozen) : `operation_starts: dict[(job_id, seq_idx), int]`. `is_empty()`, `__len__`.
+- **`SolutionHintSpec`** : même structure, sémantique différente (hint vs hard constraint).
+- **`apply_freeze(model, op_vars, spec)`** : ajoute `start_var == start_value` pour chaque entrée existante. Retourne le nombre appliqué.
+- **`apply_solution_hint(model, op_vars, spec)`** : appelle `model.add_hint(start_var, start_value)`.
+- **`derive_freeze_and_hint_from_previous(previous_result, *, now=0)`** : split automatique en politique générique. Retourne `(FreezeSpec, SolutionHintSpec)`.
+- **Solver** : `JSSPSolver.solve()` accepte `freeze=` et `solution_hint=`. Trace dans `patterns_applied` (`freeze(N)` et `solution_hint(N)`).
+
+### Caveat documenté
+
+Un freeze peut pousser une op au-delà du horizon naïf
+(`sum(durations) + sum(unavailability)`) et provoquer INFEASIBLE. Un test
+explicite (`test_apply_freeze_can_make_infeasible_when_pushes_horizon`)
+documente cette limite. Évolution V2 : `_compute_horizon` qui prend en compte
+les freezes pour étendre le horizon dynamiquement.
+
+### Critère de sortie
+
+Test slow `test_critere_replanification_perf_with_freeze_and_hint` sur instance
+8×8 (52 ops, durées variées). Mesure le temps initial puis le re-solve avec
+hint complet. Tolérance 50 % (vs critère 30 % du spec — marge pour absorber la
+variance CP-SAT). Garde-fou : si le solve initial < 100 ms, on ne mesure pas
+(overhead du hint domine sur jouets).
+
+### Tests (16 ajoutés, 348 total)
+
+- 3 sur les Pydantic specs (defaults, len)
+- 4 sur `derive_freeze_and_hint_from_previous` (now=0, partial, negative, empty)
+- 4 sur `apply_freeze` (constraint applied, infeasible caveat, unknown keys, count)
+- 1 sur `apply_solution_hint` (does not break solving)
+- 1 sur trace dans `patterns_applied`
+- 2 d'intégration (replanif reproduit, freeze partiel)
+- 1 perf @slow
+
+---
+
 ## Étape 1.6 — Soft constraints en pénalités (côté solver) ✅ stabilisée 2026-04-30
 
 **Objectif** : pendant côté CP-SAT du module 3.6 (NL → JSON typé). Traduit les
@@ -359,11 +409,11 @@ basse, le scaffolding existant les accueille sans rework).
 
 1. **Phase 1.1.opt** — Migration setup pattern — **toujours prioritaire** avant
    scale réel (bottleneck identifié en 1.1d)
-2. **Phase 1.4** — Replanification incrémentale (freeze partiel + solution hint)
-   — base déjà posée avec `schedule_stability_var` en 1.2 + calibration en 1.3
-3. **Phase 1.5** — Stabilité pondérée par criticité Tier 1/2/3
-4. **Phase 1.7** — Clustering automatique des familles de pièces
-5. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
+2. **Phase 1.5** — Stabilité pondérée par criticité Tier 1/2/3 (extension
+   naturelle de 1.4 : différencier les soft penalties de stabilité selon le
+   tier client)
+3. **Phase 1.7** — Clustering automatique des familles de pièces
+4. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
 
 ---
 

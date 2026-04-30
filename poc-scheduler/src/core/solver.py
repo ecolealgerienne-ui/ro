@@ -33,6 +33,12 @@ from src.core.pattern import (
     SharedResourceExclusionPattern,
     UnavailableIntervalsPattern,
 )
+from src.core.replanification import (
+    FreezeSpec,
+    SolutionHintSpec,
+    apply_freeze,
+    apply_solution_hint,
+)
 from src.core.soft_constraints import SoftPenaltyVar, WeightedObjectivePattern
 
 # Signature d'un builder de soft penalties : la verticale fournit cette fonction
@@ -126,6 +132,8 @@ class JSSPSolver:
         *,
         soft_penalty_builder: (SoftPenaltyBuilder | None) = None,
         makespan_weight: int = 1,
+        freeze: FreezeSpec | None = None,
+        solution_hint: SolutionHintSpec | None = None,
     ) -> SolverResult:
         """Construit le modèle CP-SAT et résout.
 
@@ -145,6 +153,14 @@ class JSSPSolver:
                 (cf. `WeightedObjectivePattern`). Defaut 1. Augmenter pour
                 rendre le makespan dominant face aux soft penalties ; 25 ou
                 125 pour aligner sur `ObjectivePriority.HIGH/CRITICAL`.
+            freeze: optionnel (Phase 1.4) — `FreezeSpec` qui verrouille les
+                operations deja demarrees a leur start_time precedent. Use case :
+                replanification a chaud, ne pas remettre en cause les decisions
+                physiquement appliquees.
+            solution_hint: optionnel (Phase 1.4) — `SolutionHintSpec` passe en
+                hint a CP-SAT (`model.add_hint`). Use case : warm start sur
+                petite perturbation du planning precedent. Pas une contrainte :
+                CP-SAT peut ignorer si conflicte.
         """
         model = cp_model.CpModel()
         horizon = self._compute_horizon(instance)
@@ -293,6 +309,16 @@ class JSSPSolver:
                 model, end_vars=last_op_ends, horizon=horizon
             )
             patterns_applied.append(MakespanObjectivePattern.name)
+
+        # --- Replanification : freeze partiel + solution hint (Phase 1.4) ---
+        if freeze is not None and not freeze.is_empty():
+            n_frozen = apply_freeze(model, op_vars, freeze)
+            if n_frozen > 0:
+                patterns_applied.append(f"freeze({n_frozen})")
+        if solution_hint is not None and not solution_hint.is_empty():
+            n_hinted = apply_solution_hint(model, op_vars, solution_hint)
+            if n_hinted > 0:
+                patterns_applied.append(f"solution_hint({n_hinted})")
 
         # --- Solving ---
         solver = cp_model.CpSolver()
