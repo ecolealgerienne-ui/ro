@@ -167,7 +167,12 @@ Le code applicatif est séparé en deux strates :
 
 ```
 poc-scheduler/src/
-├── core/           # Moteur générique (CP-SAT, modèles, patterns)
+├── core/           # Moteur générique (CP-SAT, modèles, patterns, scoring, simulation)
+│   ├── models.py
+│   ├── pattern.py / patterns.py
+│   ├── solver.py
+│   ├── scoring.py            # Phase 2.2 — score de confiance générique
+│   └── simulation.py         # Phase 2.3 — simulation opérationnelle générique
 ├── preflight/      # Pre-flight CSV générique (vertical-agnostic)
 ├── loaders/        # Loaders génériques (Taillard, runners benchmark)
 └── verticals/
@@ -176,8 +181,14 @@ poc-scheduler/src/
         ├── distributions.py      # types machine, matières, opérations
         ├── generator.py          # générateur d'ateliers synthétiques
         ├── adapter.py            # SyntheticWorkshop → WorkshopInstance
-        └── preflight_config.py   # MECH_COLUMN_PATTERNS, MECH_REQUIRED_*
+        ├── preflight_config.py   # MECH_COLUMN_PATTERNS, MECH_REQUIRED_*
+        ├── scoring_config.py     # MECH_CONFIDENCE_WEIGHTS
+        └── simulation_config.py  # MECH_SIMULATION_THRESHOLDS
 ```
+
+**Pattern engine ↔ vertical** : l'engine fournit le **mécanisme** (calcul,
+algorithme), la verticale fournit la **calibration** (poids, seuils, listes
+canoniques). Appliqué pour preflight, scoring, simulation, golden cases.
 
 ### Règles d'imports (à respecter strictement)
 
