@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Historique — Mécanique Précision SAS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body { font-family: "Inter", system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="app-root">
+      <div class="p-6 grid grid-cols-[360px_1fr] gap-6">
+        <!-- Timeline versions -->
+        <aside class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+          <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+            <h2 class="font-semibold text-slate-900">Versions</h2>
+            <span class="text-xs text-slate-500">12 versions sur 30j</span>
+          </div>
+          <ul id="versions-list" class="divide-y divide-slate-100"></ul>
+          <div class="p-3 text-center border-t border-slate-200 bg-slate-50">
+            <button class="text-xs text-slate-600 hover:text-slate-900">Charger plus...</button>
+          </div>
+        </aside>
+
+        <!-- Diff zone -->
+        <section class="space-y-4">
+          <div class="bg-white rounded-lg border border-slate-200 p-5">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="flex-1">
+                <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Comparer</div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-sm font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded" id="diff-base">v22</span>
+                  <span class="text-slate-400">→</span>
+                  <span class="font-mono text-sm font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded" id="diff-target">v23 (active)</span>
+                </div>
+              </div>
+              <button class="text-sm text-slate-600 hover:text-slate-900">↔ Inverser</button>
+            </div>
+
+            <!-- Métriques diff -->
+            <div class="grid grid-cols-4 gap-3">
+              <div class="border border-slate-200 rounded p-3">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500">Makespan</div>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="font-semibold text-slate-900">4j 6h</span>
+                  <span class="text-xs text-rose-600 font-medium">+22h</span>
+                </div>
+                <div class="text-[10px] text-slate-500">v22 : 3j 8h</div>
+              </div>
+              <div class="border border-slate-200 rounded p-3">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500">OF planifiés</div>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="font-semibold text-slate-900">25</span>
+                  <span class="text-xs text-emerald-600 font-medium">+12</span>
+                </div>
+                <div class="text-[10px] text-slate-500">v22 : 13</div>
+              </div>
+              <div class="border border-slate-200 rounded p-3">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500">Tier 1 (Safran)</div>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="font-semibold text-slate-900">5</span>
+                  <span class="text-xs text-slate-500 font-medium">=</span>
+                </div>
+                <div class="text-[10px] text-slate-500">aucun T1 déplacé</div>
+              </div>
+              <div class="border border-slate-200 rounded p-3">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500">Score</div>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="font-semibold text-slate-900">87</span>
+                  <span class="text-xs text-emerald-600 font-medium">+4</span>
+                </div>
+                <div class="text-[10px] text-slate-500">v22 : 83</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Liste des changements -->
+          <div class="bg-white rounded-lg border border-slate-200">
+            <div class="px-5 py-3 border-b border-slate-200">
+              <h3 class="font-semibold text-slate-900">Changements détaillés</h3>
+            </div>
+            <ul class="divide-y divide-slate-100 text-sm">
+              <li class="px-5 py-3 flex items-start gap-3">
+                <span class="text-emerald-600 font-mono text-xs mt-1">+12</span>
+                <div class="flex-1">
+                  <div class="text-slate-900">12 OF Stellantis Pignon BV6 ajoutés</div>
+                  <div class="text-xs text-slate-500 mt-0.5">Importés depuis CSV ce matin · placés sur CN-1, CN-2, CN-5</div>
+                </div>
+              </li>
+              <li class="px-5 py-3 flex items-start gap-3">
+                <span class="text-orange-600 font-mono text-xs mt-1">~ 3</span>
+                <div class="flex-1">
+                  <div class="text-slate-900">3 OF déplacés pour libérer CN-3 vendredi (maintenance)</div>
+                  <div class="text-xs text-slate-500 mt-0.5">OF-2026-0860, 0865, 0867 → CN-1, CN-2 (jeudi)</div>
+                </div>
+              </li>
+              <li class="px-5 py-3 flex items-start gap-3">
+                <span class="text-blue-600 font-mono text-xs mt-1">❄</span>
+                <div class="flex-1">
+                  <div class="text-slate-900">2 OF gelés (en cours d'usinage à 7h32)</div>
+                  <div class="text-xs text-slate-500 mt-0.5">OF-2026-0847 (CN-3), OF-2026-0851 (CN-1)</div>
+                </div>
+              </li>
+              <li class="px-5 py-3 flex items-start gap-3">
+                <span class="text-slate-500 font-mono text-xs mt-1">=</span>
+                <div class="flex-1 text-slate-700">
+                  Aucun OF Tier 1 déplacé — promesse de stabilité Tier respectée.
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Action rollback -->
+          <div class="bg-white rounded-lg border border-amber-200 p-5">
+            <div class="flex items-start gap-4">
+              <div class="text-amber-600 text-xl">⚠</div>
+              <div class="flex-1">
+                <div class="font-semibold text-slate-900 mb-1">Restaurer la version v22 ?</div>
+                <div class="text-sm text-slate-700 mb-3">
+                  Cette action remplace le planning actif (v23) par l'état de v22.
+                  Les 12 OF Stellantis ajoutés ce matin <strong>ne seront plus planifiés</strong> et il faudra les réimporter.
+                  Une nouvelle version v24 sera créée pour tracer le rollback (rien n'est perdu).
+                </div>
+                <div class="flex gap-2">
+                  <button class="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded hover:bg-amber-700">
+                    Restaurer v22
+                  </button>
+                  <button class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-sm rounded hover:bg-slate-50">
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="layout.js"></script>
+    <script>
+      injectLayout("versioning");
+
+      const list = document.getElementById("versions-list");
+      list.innerHTML = VERSIONS.map((v, i) => `
+        <li class="px-5 py-3 ${v.actif ? 'bg-emerald-50 border-l-4 border-emerald-500' : 'hover:bg-slate-50'} cursor-pointer">
+          <div class="flex items-start gap-3">
+            <div class="font-mono text-sm font-semibold ${v.actif ? 'text-emerald-700' : 'text-slate-700'} mt-0.5">${v.id}</div>
+            <div class="flex-1">
+              <div class="text-sm text-slate-900 font-medium">${v.message}</div>
+              <div class="text-xs text-slate-500 mt-0.5">${v.date} · ${v.auteur}</div>
+              <div class="text-xs text-slate-500 mt-1 flex gap-3">
+                <span>${v.ofCount} OF</span>
+                <span>makespan ${v.makespan}</span>
+              </div>
+            </div>
+            ${v.actif ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-600 text-white">ACTIVE</span>' : ''}
+          </div>
+        </li>
+      `).join("");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Dashboard — Mécanique Précision SAS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body { font-family: "Inter", system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="app-root">
+      <div class="p-8 space-y-6">
+        <!-- KPI cards -->
+        <section class="grid grid-cols-4 gap-4">
+          <div class="bg-white rounded-lg border border-slate-200 p-5">
+            <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Statut planning</div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-semibold text-emerald-600">✓ Validé</span>
+            </div>
+            <div class="text-xs text-slate-500 mt-2">version <span class="font-mono">v23</span> · 7h32</div>
+          </div>
+
+          <div class="bg-white rounded-lg border border-slate-200 p-5">
+            <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">OF planifiés (semaine)</div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-semibold text-slate-900" id="kpi-of">25</span>
+              <span class="text-sm text-slate-500">OF</span>
+            </div>
+            <div class="text-xs text-slate-500 mt-2">
+              <span class="text-rose-700 font-medium">5 T1</span> ·
+              <span class="text-orange-600 font-medium">14 T2</span> ·
+              <span class="text-slate-500 font-medium">6 T3</span>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg border border-slate-200 p-5">
+            <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Utilisation moyenne</div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-semibold text-slate-900">73%</span>
+            </div>
+            <div class="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full bg-indigo-500 rounded-full" style="width:73%"></div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg border border-slate-200 p-5">
+            <div class="text-xs uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1">
+              Score de confiance
+              <span class="text-slate-400 cursor-help" title="Combinaison de 4 métriques : statut solveur, écart à l'optimum connu, temps de résolution, utilisation machines.">ⓘ</span>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-semibold text-emerald-600">87/100</span>
+            </div>
+            <div class="text-xs text-slate-500 mt-2">Bon — pas d'erreur silencieuse détectée</div>
+          </div>
+        </section>
+
+        <!-- Alertes -->
+        <section class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+          <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+            <h2 class="font-semibold text-slate-900">Alertes & événements</h2>
+            <span class="text-xs text-slate-500">3 alertes actives</span>
+          </div>
+          <ul id="alertes-list" class="divide-y divide-slate-100"></ul>
+        </section>
+
+        <!-- Mini Gantt preview -->
+        <section class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+          <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+            <h2 class="font-semibold text-slate-900">Aperçu semaine</h2>
+            <a href="gantt.html" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">Voir le Gantt complet →</a>
+          </div>
+          <div class="p-5">
+            <div id="mini-gantt" class="space-y-2"></div>
+          </div>
+        </section>
+
+        <!-- Quick actions -->
+        <section class="grid grid-cols-3 gap-4">
+          <a href="conversation.html" class="bg-white rounded-lg border border-slate-200 p-5 hover:border-indigo-300 hover:shadow-sm transition-all">
+            <div class="text-2xl mb-2">💬</div>
+            <div class="font-semibold text-slate-900 mb-1">Demander une modification</div>
+            <div class="text-sm text-slate-600">« Priorité 1 sur Safran cette semaine »</div>
+          </a>
+          <a href="infeasibility.html" class="bg-white rounded-lg border border-slate-200 p-5 hover:border-indigo-300 hover:shadow-sm transition-all">
+            <div class="text-2xl mb-2">⚠️</div>
+            <div class="font-semibold text-slate-900 mb-1">Diagnostiquer un blocage</div>
+            <div class="text-sm text-slate-600">Voir pourquoi un planning est INFEASIBLE</div>
+          </a>
+          <a href="versioning.html" class="bg-white rounded-lg border border-slate-200 p-5 hover:border-indigo-300 hover:shadow-sm transition-all">
+            <div class="text-2xl mb-2">🕐</div>
+            <div class="font-semibold text-slate-900 mb-1">Historique & rollback</div>
+            <div class="text-sm text-slate-600">Comparer 2 versions, restaurer si besoin</div>
+          </a>
+        </section>
+      </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="layout.js"></script>
+    <script>
+      // Inject layout
+      injectLayout("dashboard");
+
+      // Render alertes
+      const sevColor = {
+        critique: { bg: "bg-rose-50", border: "border-l-rose-600", icon: "🔴", label: "text-rose-700" },
+        majeur: { bg: "bg-orange-50", border: "border-l-orange-500", icon: "🟠", label: "text-orange-700" },
+        info: { bg: "bg-sky-50", border: "border-l-sky-500", icon: "🔵", label: "text-sky-700" },
+      };
+      const alerteHtml = ALERTES.map((a) => {
+        const c = sevColor[a.severite];
+        return `
+          <li class="px-5 py-3 flex items-start gap-3 ${c.bg} border-l-4 ${c.border}">
+            <div class="text-lg">${c.icon}</div>
+            <div class="flex-1">
+              <div class="font-medium text-slate-900">${a.titre}</div>
+              <div class="text-sm text-slate-600 mt-0.5">${a.detail}</div>
+            </div>
+            <button class="text-sm font-medium text-indigo-600 hover:text-indigo-800 px-3 py-1 rounded hover:bg-white">
+              ${a.action} →
+            </button>
+          </li>
+        `;
+      }).join("");
+      document.getElementById("alertes-list").innerHTML = alerteHtml;
+
+      // Render mini-Gantt : 1 ligne par machine, 5 colonnes (jours)
+      const jours = ["lun", "mar", "mer", "jeu", "ven"];
+      const jourLabel = { lun: "Lun 12", mar: "Mar 13", mer: "Mer 14", jeu: "Jeu 15", ven: "Ven 16" };
+      const miniGantt = document.getElementById("mini-gantt");
+      const headerRow = `
+        <div class="grid grid-cols-[120px_repeat(5,1fr)] gap-1 text-xs text-slate-500 mb-1 font-medium">
+          <div></div>
+          ${jours.map((j) => `<div class="text-center">${jourLabel[j]}</div>`).join("")}
+        </div>
+      `;
+      const rows = MACHINES.map((m) => {
+        const cells = jours.map((j) => {
+          const ofsDay = ORDRES.filter((o) => o.machine === m.id && o.jour === j);
+          if (!ofsDay.length) {
+            return `<div class="h-6 rounded bg-slate-50 border border-slate-100"></div>`;
+          }
+          // Empile les OF de la journée — montre le tier le plus haut comme couleur dominante.
+          const blocks = ofsDay
+            .map((o) => {
+              const tier = CLIENTS[o.client].tier;
+              const bg = TIER_INFO[tier].couleur;
+              const w = Math.min(100, Math.round((o.duree / 9) * 100));
+              return `<div class="h-full rounded" style="background:${bg};opacity:.85;width:${w}%"
+                            title="${o.id} ${o.client} ${o.duree}h"></div>`;
+            })
+            .join('<div class="w-px"></div>');
+          return `<div class="h-6 rounded bg-slate-100 flex items-center gap-px overflow-hidden">${blocks}</div>`;
+        }).join("");
+        return `
+          <div class="grid grid-cols-[120px_repeat(5,1fr)] gap-1 items-center">
+            <div class="text-xs font-mono text-slate-700">${m.id}</div>
+            ${cells}
+          </div>
+        `;
+      }).join("");
+      miniGantt.innerHTML = headerRow + rows + `
+        <div class="mt-3 flex items-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#7f1d1d"></span>Tier 1</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#c2410c"></span>Tier 2</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#475569"></span>Tier 3</span>
+        </div>
+      `;
+    </script>
+  </body>
+</html>

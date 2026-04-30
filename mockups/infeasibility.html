@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Diagnostic infaisabilité — Mécanique Précision SAS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body { font-family: "Inter", system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="app-root">
+      <div class="p-6 space-y-5 max-w-4xl mx-auto">
+        <!-- Bandeau status -->
+        <div class="bg-rose-50 border border-rose-300 rounded-lg p-5 flex items-start gap-4">
+          <div class="text-3xl">⚠</div>
+          <div class="flex-1">
+            <div class="font-semibold text-rose-900 text-lg mb-1">Planning INFEASIBLE</div>
+            <div class="text-sm text-rose-900/90 mb-2">
+              Le solveur n'a pas trouvé de planning qui respecte toutes les contraintes en 60 secondes (3 tentatives + extraction MIS automatique).
+            </div>
+            <div class="text-xs text-rose-800/80">
+              <strong>Contexte :</strong> Replanification suite à : nouvelle commande Stellantis 12 OF + maintenance CN-3 vendredi 14h-18h.
+            </div>
+          </div>
+        </div>
+
+        <!-- Trust layer transparency -->
+        <div class="bg-white rounded-lg border border-slate-200 p-5">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Ce que le système a fait avant de te déranger</div>
+          <ol class="space-y-2 text-sm text-slate-700">
+            <li class="flex items-start gap-3">
+              <span class="text-emerald-600 mt-0.5">✓</span>
+              <div>Tentative 1 — budget 10s : <span class="text-slate-500">UNKNOWN, retry</span></div>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="text-emerald-600 mt-0.5">✓</span>
+              <div>Tentative 2 — budget 30s : <span class="text-slate-500">UNKNOWN, retry</span></div>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="text-rose-600 mt-0.5">⨯</span>
+              <div>Tentative 3 — budget 60s : <span class="text-rose-700 font-medium">INFEASIBLE prouvé</span></div>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="text-emerald-600 mt-0.5">✓</span>
+              <div>Extraction des causes par analyse formelle (Minimum Infeasible Subset, ~3s)</div>
+            </li>
+          </ol>
+        </div>
+
+        <!-- Causes identifiées -->
+        <div>
+          <h2 class="font-semibold text-slate-900 mb-3 px-1">Causes identifiées (2)</h2>
+          <div id="causes-list" class="space-y-3"></div>
+        </div>
+
+        <!-- Mode dégradé -->
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-5">
+          <div class="font-semibold text-amber-900 mb-1">Alternative — mode dégradé</div>
+          <div class="text-sm text-amber-900/90 mb-3">
+            <strong>Ignorer Tier 1 strict</strong> : le solveur trouvera un planning faisable mais les Safran ne seront plus prioritaires.
+          </div>
+          <div class="text-xs text-amber-800 bg-amber-100/60 rounded px-3 py-2 mb-3">
+            <strong>Risque :</strong> Visite client jeudi exposée — un OF Safran pourrait glisser à vendredi.
+          </div>
+          <button class="px-3 py-1.5 bg-amber-700 text-white text-sm font-medium rounded hover:bg-amber-800">
+            Lancer en mode dégradé
+          </button>
+        </div>
+
+        <!-- Action humaine -->
+        <div class="bg-slate-100 rounded-lg p-5 border border-slate-200">
+          <div class="text-sm text-slate-700">
+            <strong>Tu reprends la main.</strong> Le système ne décide rien à ta place. Choisis une action ci-dessus,
+            ou demande une analyse plus profonde via la
+            <a href="conversation.html" class="text-indigo-700 underline font-medium">conversation</a> (« et si on déplaçait l'audit Safran à la semaine prochaine ? »).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="layout.js"></script>
+    <script>
+      injectLayout("infeasibility");
+
+      const kindLabel = {
+        MACHINE_UNAVAILABILITY: { label: "Indisponibilité machine", icon: "🔧", color: "bg-blue-100 text-blue-800" },
+        JOB: { label: "Ordre de fabrication", icon: "📦", color: "bg-purple-100 text-purple-800" },
+        SHARED_RESOURCE: { label: "Ressource partagée", icon: "🔗", color: "bg-teal-100 text-teal-800" },
+      };
+
+      const causesHtml = INFAISABILITE.causes.map((c, idx) => {
+        const ki = kindLabel[c.kind];
+        return `
+          <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-semibold text-sm shrink-0">${idx + 1}</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="${ki.color} px-2 py-0.5 rounded text-xs font-medium">${ki.icon} ${ki.label}</span>
+                  <span class="font-mono text-xs text-slate-500">${c.identifier}</span>
+                </div>
+                <div class="text-sm text-slate-800">${c.description}</div>
+              </div>
+            </div>
+            <div class="bg-slate-50 px-5 py-4">
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Action corrective suggérée</div>
+              <div class="font-medium text-slate-900 mb-1">${c.action.label}</div>
+              <div class="text-sm text-slate-700 mb-2">${c.action.impact}</div>
+              <div class="text-xs text-slate-500 italic mb-3">${c.action.cout}</div>
+              <div class="flex gap-2">
+                <button class="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700">
+                  Simuler cette action
+                </button>
+                <button class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-sm rounded hover:bg-slate-50">
+                  Voir l'OF / la machine
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+      document.getElementById("causes-list").innerHTML = causesHtml;
+    </script>
+  </body>
+</html>

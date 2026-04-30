@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Conversation — Mécanique Précision SAS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body { font-family: "Inter", system-ui, sans-serif; }
+      .typing::after { content: '▌'; animation: blink 1s infinite; }
+      @keyframes blink { 0%,50%{opacity:1}51%,100%{opacity:0} }
+    </style>
+  </head>
+  <body>
+    <div id="app-root">
+      <div class="flex h-full overflow-hidden">
+        <!-- Chat zone -->
+        <div class="flex-1 flex flex-col bg-white border-r border-slate-200">
+          <!-- Header conversation -->
+          <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+            <div>
+              <div class="text-sm text-slate-500">Conversation #1 — démarrée à 7h47</div>
+              <h2 class="font-semibold text-slate-900">Replanification semaine S20</h2>
+            </div>
+            <button class="text-sm text-slate-600 hover:text-slate-900">+ Nouvelle conversation</button>
+          </div>
+
+          <!-- Messages -->
+          <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+
+          <!-- Input -->
+          <div class="border-t border-slate-200 p-4 bg-slate-50">
+            <div class="text-xs text-slate-500 mb-2">💡 Suggestions</div>
+            <div class="flex flex-wrap gap-2 mb-3">
+              <button class="text-xs px-3 py-1.5 rounded-full bg-white border border-slate-300 hover:border-indigo-400 hover:text-indigo-700">
+                Que se passe-t-il si je gèle l'OF Bosch ?
+              </button>
+              <button class="text-xs px-3 py-1.5 rounded-full bg-white border border-slate-300 hover:border-indigo-400 hover:text-indigo-700">
+                Prochaine échéance critique ?
+              </button>
+              <button class="text-xs px-3 py-1.5 rounded-full bg-white border border-slate-300 hover:border-indigo-400 hover:text-indigo-700">
+                Décale OF-2026-0892 d'une semaine
+              </button>
+            </div>
+            <div class="flex gap-2 items-end">
+              <textarea
+                placeholder="Écris ta demande en langage naturel — ex : 'Priorité 1 sur Safran cette semaine'..."
+                class="flex-1 px-4 py-3 border border-slate-300 rounded-lg resize-none focus:outline-none focus:border-indigo-500 text-sm"
+                rows="2"
+              ></textarea>
+              <button class="px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700">
+                Envoyer
+              </button>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-2 flex items-center gap-1">
+              <span>⚠</span>
+              <span>Toute modification proposée par l'assistant sera <strong>validée par toi</strong> avant d'être appliquée.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview impact (panneau droit) -->
+        <aside class="w-[420px] bg-slate-50 overflow-y-auto">
+          <div class="p-5 border-b border-slate-200 bg-white">
+            <h3 class="font-semibold text-slate-900 mb-1">Aperçu de l'impact</h3>
+            <p class="text-xs text-slate-500">Diff Gantt — avant / après si tu valides la modification proposée.</p>
+          </div>
+
+          <div class="p-5 space-y-5">
+            <!-- Métriques diff -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-white rounded border border-slate-200 p-3">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500">Makespan</div>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="font-semibold text-slate-900">4j 4h</span>
+                  <span class="text-xs text-emerald-600 font-medium">−2h</span>
+                </div>
+              </div>
+              <div class="bg-white rounded border border-slate-200 p-3">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500">Score</div>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="font-semibold text-slate-900">89</span>
+                  <span class="text-xs text-emerald-600 font-medium">+2</span>
+                </div>
+              </div>
+              <div class="bg-white rounded border border-slate-200 p-3">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500">OF déplacés</div>
+                <div class="font-semibold text-slate-900">5 / 25</div>
+              </div>
+              <div class="bg-white rounded border border-slate-200 p-3">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500">Conflits</div>
+                <div class="font-semibold text-emerald-600">Aucun</div>
+              </div>
+            </div>
+
+            <!-- Liste OF impactés -->
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500 mb-2 font-medium">OF impactés (5)</div>
+              <ul class="space-y-2">
+                <li class="bg-white border border-slate-200 rounded p-3 text-sm">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-mono text-xs text-slate-600">OF-2026-0851</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">T2</span>
+                  </div>
+                  <div class="text-slate-800">Stellantis · Pignon différentiel</div>
+                  <div class="text-xs text-slate-500 mt-1">Lun 12, 8h00 → <span class="text-orange-700 font-medium">Mar 13, 14h00</span> (+1.5j)</div>
+                </li>
+                <li class="bg-white border border-slate-200 rounded p-3 text-sm">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-mono text-xs text-slate-600">OF-2026-0852</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">T2</span>
+                  </div>
+                  <div class="text-slate-800">Stellantis · Pignon différentiel</div>
+                  <div class="text-xs text-slate-500 mt-1">Lun 12, 8h00 → <span class="text-orange-700 font-medium">Mar 13, 14h00</span> (+1.5j)</div>
+                </li>
+                <li class="bg-white border border-slate-200 rounded p-3 text-sm">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-mono text-xs text-slate-600">OF-2026-0855</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-700">T3</span>
+                  </div>
+                  <div class="text-slate-800">ProtoLab · Proto coque ITER</div>
+                  <div class="text-xs text-slate-500 mt-1">Lun 12, 13h00 → <span class="text-rose-700 font-medium">Mar 19, 9h00</span> (+1 sem.)</div>
+                </li>
+                <li class="bg-white border border-slate-200 rounded p-3 text-sm text-slate-400 italic">
+                  + 2 autres (cliquer pour voir)
+                </li>
+              </ul>
+            </div>
+
+            <!-- Tier 1 verdict -->
+            <div class="bg-emerald-50 border border-emerald-200 rounded p-4">
+              <div class="font-medium text-emerald-900 text-sm mb-1">✓ Tous les OF Tier 1 protégés</div>
+              <div class="text-xs text-emerald-800/80">5 OF Safran sont placés en première position de leur machine. Aucun retard sur deadlines.</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="layout.js"></script>
+    <script>
+      injectLayout("conversation");
+
+      // Render messages
+      const wrap = document.getElementById("messages");
+      const html = CONVERSATION.map((m) => {
+        const isUser = m.role === "user";
+        const bubble = `
+          <div class="${isUser ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-900'} rounded-2xl ${isUser ? 'rounded-br-sm' : 'rounded-bl-sm'} px-4 py-3 max-w-[75%] whitespace-pre-line text-sm">
+            ${m.texte}
+          </div>
+        `;
+        const validation = m.validation
+          ? validationCard({
+              titre: m.validation.titre,
+              body: `<strong>Avant :</strong> ${m.validation.diff.avant}<br/><strong>Après :</strong> ${m.validation.diff.apres}<br/><span class="text-xs text-amber-700">${m.validation.ofImpactes} OF impactés — voir colonne droite pour détail.</span>`,
+            })
+          : "";
+        return `
+          <div class="flex ${isUser ? 'justify-end' : 'justify-start'} gap-2">
+            ${!isUser ? '<div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-sm">🤖</div>' : ''}
+            <div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} gap-1">
+              ${bubble}
+              ${validation}
+              <span class="text-[10px] text-slate-400 px-1">${m.heure}</span>
+            </div>
+            ${isUser ? '<div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-semibold">PM</div>' : ''}
+          </div>
+        `;
+      }).join("");
+      wrap.innerHTML = html;
+      wrap.scrollTop = wrap.scrollHeight;
+    </script>
+  </body>
+</html>
