@@ -4,7 +4,7 @@
 > Documente les résultats concrets, décisions techniques et métriques de chaque étape.
 > Mis à jour à chaque étape stabilisée.
 
-**Snapshot : 2026-04-30 — Phase 2.1 (harness + 15 cases pilotes), 2.2 ✅, 2.3 ✅**
+**Snapshot : 2026-04-30 — Phase 2.1 (harness + 15 cases pilotes), 2.2 ✅, 2.3 ✅, 2.4 ✅**
 
 ---
 
@@ -13,10 +13,10 @@
 | Indicateur | Valeur |
 |------------|--------|
 | Phase courante | 2 — Trust layer technique (sans LLM) |
-| Étapes Phase 2 stabilisées | **2/5** (2.2 ✅ scoring, 2.3 ✅ simulation) |
+| Étapes Phase 2 stabilisées | **3/5** (2.2 ✅ scoring, 2.3 ✅ simulation, 2.4 ✅ circuit breaker) |
 | Étape en cours | **2.1 🟡** — harness golden cases + 15 pilotes livrés, extension à 100 différée |
-| Étapes restantes | **2/5** (2.4 circuit breaker, 2.5 pipeline complet) |
-| Tests automatisés | **228 passants** (5 skipped Taillard non téléchargés) — ~120 s |
+| Étapes restantes | **1/5** (2.5 pipeline complet) |
+| Tests automatisés | **239 passants** (5 skipped Taillard non téléchargés) — ~120 s |
 | Architecture | **Multi-vertical** formalisée (engine ↔ vertical, refactor commit `8e505e3`) |
 
 ---
@@ -135,6 +135,38 @@ au-delà du makespan que le solveur minimise.
 
 ---
 
+## Étape 2.4 — Circuit breaker INFEASIBLE ✅
+
+**Objectif** : sortie déterministe en cas d'échec solveur. Pas de boucle
+infinie, signalement explicite (SOLVED / INFEASIBLE / EXHAUSTED).
+
+**Livrables**
+- `src/core/circuit_breaker.py` — engine générique :
+  - 3 tentatives par défaut (budgets temps croissants : 10 s / 30 s / 60 s).
+  - Arrêt précoce si CP-SAT prouve l'infaisabilité (`status == INFEASIBLE`)
+    — inutile de retenter avec plus de temps.
+  - Fallback `mis_extractor` injectable. Stub par défaut renvoie un message
+    documentant l'absence d'extracteur (vraie extraction MIS livrée en Phase 1.8).
+  - Garantie anti-boucle : `n_attempts ≤ len(time_budgets_s)`, validation
+    stricte des budgets (vide / non-positifs → `ValueError`).
+- `tests/test_circuit_breaker.py` — 11 tests :
+  - SOLVED en 1 attempt sur baseline 3×3 (cas réel)
+  - INFEASIBLE détecté + arrêt précoce sur instance custom (1 op dur 10 +
+    unavailability `[(0,5), (10,20)]` fragmentant la disponibilité)
+  - EXHAUSTED après 3 attempts UNKNOWN (monkeypatch `JSSPSolver.solve`)
+  - Retry après UNKNOWN puis SOLVED (monkeypatch séquentiel)
+  - `mis_extractor` custom invoqué uniquement quand pertinent
+  - Validation arguments (budgets vides / 0 / négatifs)
+
+**Outcomes**
+- `SOLVED` — au moins une tentative a renvoyé OPTIMAL ou FEASIBLE
+- `INFEASIBLE` — CP-SAT a prouvé l'infaisabilité ; MIS extracté
+- `EXHAUSTED` — tous les budgets épuisés sans solution ni preuve ; MIS extracté
+
+**Statut** : ✅ stabilisée le 2026-04-30.
+
+---
+
 ## Métriques cumulées Phase 2
 
 | Étape | Tests ajoutés | Runtime ajouté | Statut |
@@ -143,9 +175,10 @@ au-delà du makespan que le solveur minimise.
 | 2.1 — golden cases | 16 (15 cases + harness) | 0.6 s | 🟡 |
 | 2.2 — scoring | 13 | < 1 s | ✅ |
 | 2.3 — simulation | 11 | < 1 s | ✅ |
-| **Total Phase 2** | **40** | **~ 3 s** | 2/5 |
+| 2.4 — circuit breaker | 11 | < 1 s | ✅ |
+| **Total Phase 2** | **51** | **~ 4 s** | 3/5 |
 
-Suite de tests globale : **228 passants** (vs 188 à l'ouverture Phase 2).
+Suite de tests globale : **239 passants** (vs 188 à l'ouverture Phase 2).
 
 ---
 
@@ -177,8 +210,7 @@ Suite de tests globale : **228 passants** (vs 188 à l'ouverture Phase 2).
 
 ### Restant Phase 2
 
-1. **Phase 2.4** — Circuit breaker INFEASIBLE (3 retries → bascule MIS) — pure engine
-2. **Phase 2.5** — Pipeline complet `solving → validation → simulation → score → décision` — orchestration
+1. **Phase 2.5** — Pipeline complet `solving → validation → simulation → score → décision` — orchestration finale qui agrège les 4 modules livrés (golden cases, scoring, simulation, circuit breaker).
 
 ### Gate 1 (fin Phase 2)
 

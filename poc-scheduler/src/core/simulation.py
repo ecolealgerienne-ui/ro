@@ -178,7 +178,9 @@ def _machine_metrics(
     )
 
 
-def _job_metrics(instance: WorkshopInstance, schedule: Sequence[ScheduleAssignment]) -> list[JobMetrics]:
+def _job_metrics(
+    instance: WorkshopInstance, schedule: Sequence[ScheduleAssignment]
+) -> list[JobMetrics]:
     by_job: dict[int, list[ScheduleAssignment]] = {}
     for a in schedule:
         by_job.setdefault(a.job_id, []).append(a)
@@ -305,9 +307,7 @@ def simulate_schedule(
 
     by_machine = _ops_per_machine(instance, result.schedule)
     machines = [
-        _machine_metrics(
-            instance, m_id, ops, micro_pause_threshold=micro_pause_threshold
-        )
+        _machine_metrics(instance, m_id, ops, micro_pause_threshold=micro_pause_threshold)
         for m_id, ops in sorted(by_machine.items())
     ]
     jobs = _job_metrics(instance, result.schedule)

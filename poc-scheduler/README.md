@@ -70,7 +70,8 @@ poc-scheduler/
 │   │   ├── patterns.py         # API fonctionnelle (delegates legacy)
 │   │   ├── solver.py           # JSSPSolver, SolverResult, validate_schedule
 │   │   ├── scoring.py          # Score de confiance (4 métriques + hard gate)
-│   │   └── simulation.py       # Simulation post-hoc (verdict ACCEPT/WARN/REJECT)
+│   │   ├── simulation.py       # Simulation post-hoc (verdict ACCEPT/WARN/REJECT)
+│   │   └── circuit_breaker.py  # Circuit breaker INFEASIBLE (3 retries + MIS)
 │   ├── preflight/              # Pre-flight CSV générique (vertical-agnostic)
 │   ├── loaders/                # Loaders génériques (Taillard, benchmark runner)
 │   └── verticals/
@@ -106,4 +107,4 @@ narratifs (`../phase-{0,1,2}-report.md`).
 
 - ✅ Phase 0 stabilisée (Gate 0 ✓ : OR-Tools validé sur Taillard)
 - 🟡 Phase 1 en cours (1.1 ✓, 1.1.opt et 1.2-1.8 restantes)
-- 🟡 Phase 2 en cours (2.2 ✓ scoring, 2.3 ✓ simulation, 2.1 partiel, 2.4 et 2.5 restantes)
+- 🟡 Phase 2 en cours (2.2 ✓ scoring, 2.3 ✓ simulation, 2.4 ✓ circuit breaker, 2.1 partiel, 2.5 restante)

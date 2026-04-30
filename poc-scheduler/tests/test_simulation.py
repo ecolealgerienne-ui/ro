@@ -159,7 +159,9 @@ def test_micro_pauses_exceeded_yields_warn() -> None:
     schedule = []
     t = 0
     for j in range(5):
-        schedule.append(ScheduleAssignment(job_id=j, sequence_idx=0, machine_id=0, start=t, end=t + 3))
+        schedule.append(
+            ScheduleAssignment(job_id=j, sequence_idx=0, machine_id=0, start=t, end=t + 3)
+        )
         t += 3 + 2
     report = simulate_schedule(instance, _result(schedule, t - 2), **DEFAULTS)
     assert report.verdict is SimulationVerdict.WARN
@@ -282,7 +284,10 @@ def test_mech_thresholds_cover_required_keys() -> None:
 
 
 def test_mech_thresholds_are_internally_consistent() -> None:
-    assert MECH_SIMULATION_THRESHOLDS["reject_setup_ratio"] >= MECH_SIMULATION_THRESHOLDS["max_setup_ratio"]
+    assert (
+        MECH_SIMULATION_THRESHOLDS["reject_setup_ratio"]
+        >= MECH_SIMULATION_THRESHOLDS["max_setup_ratio"]
+    )
     assert MECH_SIMULATION_THRESHOLDS["micro_pause_threshold"] > 0
 
 
