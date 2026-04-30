@@ -1,0 +1,14 @@
+NO_OF;REF_CLIENT;DESIG_PIECE;MATERIAU;OPERATION_DESC;POSTE_TRAVAIL;TPS_OP_MIN;DATE_LIV;PRIORITE;COMMENTAIRES
+2026-201;CLI-AERO-A;Bague_distrib_v2;Aluminium 7075-T6;Tournage Ebauche CN;TOUR-01;55;15/05/2026;1;Pieces a traiter en lot
+2026-201;CLI-AERO-A;Bague_distrib_v2;Aluminium 7075-T6;Tournage Finition;TOUR-01;35;15/05/2026;1;
+2026-201;CLI-AERO-A;Bague_distrib_v2;Aluminium 7075-T6;CMM Controle;CMM-01;20;15/05/2026;1;
+2026-202;CLI-AUTO-B;Plaque pivot;42 CrMo 4;Fraisage 3 axes ebauche;FRAIS-02;65;12/05/2026;2;urgent
+2026-202;CLI-AUTO-B;Plaque pivot;42 CrMo 4;Percage M6;PERC-01;12;12/05/2026;2;
+2026-202;CLI-AUTO-B;Plaque pivot;42 CrMo 4;Taraudage M6;PERC-01;8;12/05/2026;2;
+2026-203;CLI-MED-C;Implant_v3;Ti-6Al-4V;Fraisage 5-axes;FRAIS-5X-01;145;20/05/2026;1;Pieces medicales
+2026-203;CLI-MED-C;Implant_v3;Ti-6Al-4V;Anodisation externe;EXT-ANO-01;3000;20/05/2026;1;Sous-traitance
+2026-204;CLI-AERO-A;Support reducteur;Inox 316L;Tournage;TOUR-02;42;18/05/2026;3;
+2026-204;CLI-AERO-A;Support reducteur;Inox 316L;Rectification cyl.;RECT-01;38;18/05/2026;3;
+2026-205;CLI-DEF-D;Rotule de pivot;AL-2017;Fraisage finition CN;FRAIS-01;28;14/05/2026;2;
+2026-205;CLI-DEF-D;Rotule de pivot;AL-2017;Marquage gravure;FRAIS-01;4;14/05/2026;2;
+2026-205;CLI-DEF-D;Rotule de pivot;AL-2017;Lavage final;FRAIS-01;6;14/05/2026;2;

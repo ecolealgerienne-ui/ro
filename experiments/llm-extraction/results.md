@@ -110,37 +110,90 @@ A-t-on tué la VRAIE détection en réduisant le sur-zèle ? À tester avec `fix
 
 ## Itération 3 — `prompt_v2` × `fixture_04_anomalies` (à venir)
 
-**Date** : (à compléter)
+**Date** : 2026-04-30
 **Modèle** : Claude Sonnet 4.6 (web claude.ai)
 **Prompt** : `prompt_v2.md`
 **Fixture** : `fixture_04_anomalies.csv`
 
 **Hypothèse à valider** : Claude détecte les 6 vraies anomalies SANS générer de fausses positives sur les cas-pièges.
 
-### Anomalies attendues (6)
+### Output produit par Claude
 
-| Ligne | Type attendu | Description |
-|-------|--------------|-------------|
-| OF-2026-101 | `duree_negative` | Durée -30 min |
-| OF-2026-102 | `duree_zero` | Durée 0 sur tournage_finition |
-| OF-2026-103 | `matiere_inconnue` | "ZorglubMetal" hors liste canonique |
-| OF-2026-104 | `date_passee` | deadline 2025-01-01 (avant aujourd'hui) |
-| OF-2026-105 | `duree_excessive_interne` | 2000 min > 1440 min sur fraisage_5axes |
-| OF-2026-107 | `of_doublon_incoherent` | Même OF avec client/pièce/matière différents |
+8 OF dans `orders` (dont OF-2026-107 fusionné à partir des 2 lignes), 6 machines détectées, 6 anomalies bien typées.
 
-### Cas-pièges (NE doivent PAS être flaggés — 3)
+### Évaluation : 15/15
 
-| Ligne | Pourquoi pas anomalie |
-|-------|----------------------|
-| OF-2026-100 | OF parfaitement propre, control case |
-| OF-2026-106 ébavurage 5 min | Plage normale 5-30 min |
-| OF-2026-106 marquage 2 min | Plage normale 1-10 min |
+**Détection : 6/6**
+- `duree_negative` (OF-101, raw -30) ✓
+- `duree_zero` (OF-102, raw 0) ✓
+- `matiere_inconnue` (OF-103, "ZorglubMetal" préservée) ✓
+- `date_passee` (OF-104, 2025-01-01) ✓
+- `duree_excessive_interne` (OF-105, 2000 min) ✓
+- `of_doublon_incoherent` (OF-107, description détaillée des différences) ✓
 
-### Comportements attendus sur OF-2026-103 (matière inconnue)
+**Précision : 3/3 contrôles non-flaggés**
+- OF-100 propre → absent de `anomalies` ✓
+- OF-106 ébavurage 5 min → non flaggé ✓
+- OF-106 marquage 2 min → non flaggé ✓
 
-- `material_normalized` doit garder la valeur originale `ZorglubMetal` (pas inventer)
-- L'OF doit quand même apparaître dans `orders`
-- Une anomalie `matiere_inconnue` listée
+**Comportements remarquables**
+1. Préservation parfaite : durations -30, 0, 2000 gardées telles quelles dans `operations` (T4)
+2. ZorglubMetal préservé en `material_normalized` (n'a pas inventé une forme canonique)
+3. Connaissance implicite de la date du jour (Claude écrit "antérieure à la date du jour 30/04/2026")
+4. Comportement non spécifié sur OF-107 : Claude a **fusionné** les 2 lignes en 1 entrée avec 2 ops, en prenant les valeurs de la première ligne. Choix intelligent mais à expliciter pour l'API
+
+**Apprentissages pour l'API (futur)**
+- Passer la date courante explicitement en paramètre (ne pas dépendre de la connaissance implicite du modèle)
+- Spécifier le comportement sur OF doublons (fusion / duplication / rejet)
+
+---
+
+## Itération 4 — `prompt_v2` × `fixture_03_erp_chaotic` (à venir)
+
+**Date** : (à compléter)
+**Modèle** : Claude Sonnet 4.6 (web claude.ai)
+**Prompt** : `prompt_v2.md`
+**Fixture** : `fixture_03_erp_chaotic.csv`
+
+**Hypothèse à valider** : Claude résiste à la diversité de format ERP réel (colonnes techniques, dates DD/MM/YYYY, formulations métier ERP-spécifiques).
+
+### Défis de la fixture F3
+
+| Variation | Test |
+|-----------|------|
+| Colonnes techniques | NO_OF, REF_CLIENT, DESIG_PIECE, MATERIAU, OPERATION_DESC, POSTE_TRAVAIL, TPS_OP_MIN, DATE_LIV |
+| Format date | DD/MM/YYYY (`15/05/2026`) au lieu de YYYY-MM-DD |
+| Variations matières | "Aluminium 7075-T6", "42 CrMo 4", "Ti-6Al-4V", "AL-2017" |
+| Phrasings opérations | "Tournage Ebauche CN", "CMM Controle", "Fraisage 3 axes ebauche", "Percage M6", "Taraudage M6", "Fraisage 5-axes", "Tournage" (sans qualificatif), "Rectification cyl.", "Marquage gravure", "Lavage final" |
+| Colonnes inutiles | PRIORITE, COMMENTAIRES |
+| Machine inconnue | EXT-ANO-01 (anodisation externe, pas de prefix mappé) |
+
+### Comportements attendus
+
+- **Mapping colonnes** : Claude doit comprendre NO_OF→order_id, REF_CLIENT→client, DESIG_PIECE→piece_name, etc.
+- **Conversion date** : "15/05/2026" → "2026-05-15"
+- **Normalisations** :
+  - "Aluminium 7075-T6" → `aluminium_7075`
+  - "42 CrMo 4" → `acier_42CrMo4`
+  - "Ti-6Al-4V" → `titane_TA6V`
+  - "AL-2017" → `aluminium_2017`
+  - "Tournage Ebauche CN" → `tournage_ebauche`
+  - "CMM Controle" → `controle_dimensionnel`
+  - "Tournage" (sans qualificatif) → ambigu : `tournage_ebauche` ? `tournage_finition` ? À surveiller
+  - "Percage M6", "Taraudage M6" → `percage`, `taraudage`
+  - "Fraisage 5-axes" → `fraisage_5axes`
+  - "Marquage gravure" → `marquage`
+  - "Lavage final" → `lavage`
+- **Machine ambiguë** : EXT-ANO-01 → `autre` + anomalie `colonne_ambigue` (selon règle 6 du prompt)
+
+### Cas particulier "Tournage" sans qualificatif
+
+Aucune des deux formes canoniques (`tournage_ebauche`, `tournage_finition`) n'est strictement applicable. Comportements possibles :
+- Choix arbitraire (tournage_ebauche par défaut) → risqué
+- Choix par contexte (la pièce a aussi de la rectif → probablement de la finition) → intelligent
+- Anomalie `operation_inconnue` → strict
+
+À voir ce que Claude fait — informatif sur sa façon de raisonner.
 
 ### Output produit par Claude
 
@@ -150,13 +203,14 @@ A-t-on tué la VRAIE détection en réduisant le sur-zèle ? À tester avec `fix
 
 ### Évaluation : __/15
 
-(remplir après test)
+(à remplir)
 
-### Critères spécifiques F4
+### Critères spécifiques F3
 
-- **Détection** : 6/6 vraies anomalies trouvées ?
-- **Précision** : 0 fausses positives ? (les 3 cas-pièges)
-- **Type d'anomalie correct** ? (chaque anomalie a le bon `type` selon la liste)
+- **Mapping colonnes ERP** : 8 colonnes mappées correctement ?
+- **Conversion date** : tous les `deadline` au format ISO ?
+- **Robustesse normalisation** : matières et opérations correctement identifiées malgré les variations ?
+- **Gestion EXT-ANO-01** : flagué proprement ou silencieusement classé "autre" ?
 
 ---
 
@@ -165,7 +219,7 @@ A-t-on tué la VRAIE détection en réduisant le sur-zèle ? À tester avec `fix
 | Prompt | F1 | F2 | F3 | F4 | F5 | Notes |
 |--------|----|----|----|----|----|-------|
 | v1 | 14/15 | — | — | — | — | sur-zèle sur A3 |
-| v2 | **15/15** | — | — | __/15 | — | seuils stricts, à tester sur F4 |
+| v2 | **15/15** | — | __/15 | **15/15** | — | seuils stricts + anti-zèle. F4 anomalies réelles parfait, F3 robustesse format à tester |
 
 ---
 
@@ -176,3 +230,7 @@ A-t-on tué la VRAIE détection en réduisant le sur-zèle ? À tester avec `fix
 | 2026-04-30 | Passer à prompt_v2 avec seuils stricts | Sur-zèle observé sur F1 — critique pour le trust layer |
 | 2026-04-30 | F1 prompt_v2 = 15/15, sur-zèle éliminé | Confirme que le cadrage par seuils numériques fonctionne |
 | 2026-04-30 | Ajout F4 pour tester la VRAIE détection | Vérifier qu'on n'a pas tué le filet de sécurité en réduisant le sur-zèle |
+| 2026-04-30 | F4 prompt_v2 = 15/15 (6/6 anomalies + 0 fausse positive) | Filet de sécurité intact ; agent extraction validé sur cas extrêmes |
+| 2026-04-30 | Ajout F3 (format ERP chaotique) | Dernier test avant clôture — robustesse à la diversité réelle des exports ERP |
+| 2026-04-30 | Note pour l'API : passer la date courante explicitement | Claude a la date implicitement, dangereux à long terme |
+| 2026-04-30 | Note pour l'API : spécifier comportement sur OF doublons | Claude fusionne intelligemment, mais le choix doit être explicite |
