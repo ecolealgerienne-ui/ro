@@ -1,0 +1,15 @@
+{
+  "answers": {
+    "size_band": "30-50 personnes",
+    "n_machines_range": "20-25",
+    "n_operators_range": "25-30",
+    "machine_types_present": ["centre d'usinage 3 axes", "tour CN 2 axes", "perceuse colonne", "ebavurage manuel"],
+    "main_certifications": ["IATF 16949 auto", "ISO 9001"],
+    "main_materials": ["acier S355", "acier 42CrMo4", "fonte GS500", "aluminium 6061"],
+    "shifts": "3 equipes 8h non-stop semaine",
+    "shared_resources_present": "non, machines independantes",
+    "typical_order_size": "200 a 1000 pieces par OF (grandes series)",
+    "typical_lead_time": "2 a 3 semaines",
+    "extra_notes": "Sous-traitance industrie automobile (Stellantis, Renault, Bosch). Cadence elevee. Beaucoup de pieces standard."
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "answers": {
+    "size_band": "10-25 personnes",
+    "n_machines_range": "8-10",
+    "n_operators_range": "8-12",
+    "machine_types_present": ["tour CN suisse haute precision", "centre 5 axes", "rectifieuse cylindrique", "MMT controle dimensionnel"],
+    "main_certifications": ["ISO 13485 medical", "ISO 9001"],
+    "main_materials": ["titane TA6V grade ELI", "inox 316LVM", "PEEK"],
+    "shifts": "1 equipe 8h, lundi-vendredi",
+    "shared_resources_present": "oui : salle blanche ISO 7 partagee, MMT en goulot",
+    "typical_order_size": "5 a 30 pieces par OF (petites series, traçabilite unitaire)",
+    "typical_lead_time": "5 a 8 semaines (validation client + traçabilite)",
+    "extra_notes": "Implants orthopediques + instrumentation chirurgicale. Donneur principal Smith&Nephew. Marquage CE classe IIb. Traçabilite materiau unitaire obligatoire."
+  }
+}

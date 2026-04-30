@@ -1,0 +1,23 @@
+{
+  "user_request": "Bascule l'OF Bosch sur une autre fraiseuse si FRAIS-01 est trop chargee",
+  "instance_summary": {
+    "n_orders": 47,
+    "clients": ["Safran", "PSA", "Airbus", "Bosch"],
+    "machines": ["TOUR-01", "TOUR-02", "FRAIS-01", "FRAIS-02", "RECT-01"],
+    "machine_load_pct": {
+      "TOUR-01": 60,
+      "TOUR-02": 55,
+      "FRAIS-01": 51,
+      "FRAIS-02": 49,
+      "RECT-01": 35
+    },
+    "bosch_orders": [
+      {"order_id": "OF-2026-014", "current_machine_for_milling": "FRAIS-01"},
+      {"order_id": "OF-2026-022", "current_machine_for_milling": "FRAIS-01"}
+    ],
+    "machine_qualifications": {
+      "FRAIS-01": ["aluminium", "acier"],
+      "FRAIS-02": ["aluminium", "acier", "fonte"]
+    }
+  }
+}

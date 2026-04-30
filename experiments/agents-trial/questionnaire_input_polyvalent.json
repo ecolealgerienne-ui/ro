@@ -1,0 +1,15 @@
+{
+  "answers": {
+    "size_band": "12 personnes",
+    "n_machines_range": "6 machines",
+    "n_operators_range": "8 operateurs (dont 2 polyvalents)",
+    "machine_types_present": ["tour parallele conventionnel", "fraiseuse 3 axes manuelle", "perceuse a colonne", "scie a ruban"],
+    "main_certifications": ["aucune certification formelle"],
+    "main_materials": ["beaucoup de matieres differentes : alu, acier, inox, laiton, plastique"],
+    "shifts": "1 equipe 7h-15h",
+    "shared_resources_present": "non",
+    "typical_order_size": "tres variable, de 1 piece unitaire a 50 pieces",
+    "typical_lead_time": "1 a 2 semaines, parfois en urgence sous 48h",
+    "extra_notes": "Sous-traitance generaliste pour atelier electromecanique local. Reparations + petites series + prototypes. Pas de gros donneur d'ordre. Beaucoup de devis a la piece."
+  }
+}
