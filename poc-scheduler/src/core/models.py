@@ -47,12 +47,28 @@ class Operation(BaseModel):
 
 
 class Job(BaseModel):
-    """Un job composé d'une suite ordonnée d'opérations (gamme opératoire)."""
+    """Un job composé d'une suite ordonnée d'opérations (gamme opératoire).
+
+    Champs optionnels (étape 1.6) :
+        - deadline : échéance en unités de temps cohérentes avec horizon. Permet
+          aux soft constraints de pénaliser la tardiveté.
+        - client : identifiant du donneur d'ordre. Permet aux soft constraints
+          de moduler la priorité par client.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     job_id: int = Field(..., ge=0)
     operations: list[Operation]
+    deadline: int | None = Field(
+        default=None,
+        ge=0,
+        description="Échéance en unités de temps cohérentes avec horizon. None = pas de contrainte.",
+    )
+    client: str | None = Field(
+        default=None,
+        description="Identifiant du donneur d'ordre (texte libre).",
+    )
 
     @model_validator(mode="after")
     def _check_operations_consistency(self) -> Job:

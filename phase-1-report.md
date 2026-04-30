@@ -4,7 +4,7 @@
 > Documente les résultats concrets, décisions techniques et métriques de chaque étape.
 > Mis à jour à chaque étape stabilisée.
 
-**Snapshot : 2026-04-29 — Phase 1.1 stabilisée, 1.1.opt en attente**
+**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.6 🟡 démarrée (3/5 translators), 1.1.opt + 1.2-1.5 + 1.7-1.8 en attente**
 
 ---
 
@@ -153,21 +153,71 @@ Note : 168 reportés pendant exécution, 163 dans la liste — diff potentiellem
 
 ---
 
+## Étape 1.6 — Soft constraints en pénalités (côté solver) 🟡 démarrée 2026-04-30
+
+**Objectif** : pendant côté CP-SAT du module 3.6 (NL → JSON typé). Traduit les
+`SoftConstraint` produites par l'agent en penalty terms intégrés à l'objectif :
+`minimize(makespan + Σ w_i × penalty_i)`.
+
+### Livrables (V1 = 3/5 translators)
+
+**Engine `src/core/soft_constraints.py`** (vertical-agnostic) :
+- `SoftPenaltyVar` (dataclass frozen) : label + weight entier + var CP-SAT.
+- `WeightedObjectivePattern` : combine makespan + somme pondérée. Si
+  `soft_penalties=()`, comportement identique à `MakespanObjectivePattern`.
+- Note critique sur l'extraction post-solving : avec soft, `solver.objective_value`
+  est la somme pondérée, **pas** le makespan brut. Le pattern retourne la
+  `IntVar` makespan pour permettre `solver.value(makespan_var)` séparément.
+
+**Extension du modèle `Job`** : `deadline: int | None`, `client: str | None`
+(optionnels, backward-compatible).
+
+**Verticale méca — 3 translators sur 5 visés** :
+
+| # | Translator | Idiome CP-SAT | Catégorie 3.6 traitée |
+|---|------------|---------------|------------------------|
+| 1 | `tardiness_per_job` | PROPORTIONNEL : `max(0, end-deadline)` | `client_priority` |
+| 2 | `avoid_machine_during_period` | BOOLÉEN reified : flag overlap | `avoid_machine_during_period` |
+| 3 | `encourage_early_completion` | PROPORTIONNEL aggregat : Σ ends | (escape `other`) |
+
+Dispatcher `translate_soft_constraints()` qui invoque le bon translator selon
+`SoftConstraintCategory`.
+
+**Intégration solver** : `JSSPSolver.solve()` accepte `soft_penalty_builder`
+(callable injectable). Si fourni → bascule sur `WeightedObjectivePattern`.
+Sinon → comportement legacy (makespan seul).
+
+### Tests (12 ajoutés, 291 total)
+
+- 3 sur `WeightedObjectivePattern` (sans soft, avec soft, validation arguments)
+- 2 sur `tardiness_per_job`
+- 2 sur `avoid_machine_during_period`
+- 1 sur `encourage_early_completion`
+- 1 sur dispatcher
+- 3 d'intégration solver dont **`test_solver_5_hard_3_soft_cohabitate`** : 5 hard
+  patterns (NoOverlap + Precedence + Setup + Calendar + Operator + SharedResource)
+  + 3 soft simultanément → ✓ passe.
+
+### Reste à faire pour clore 1.6 (atteindre 5 soft)
+
+- Idiome **COUNT** (transitions par machine) → `prefer_grouping_by_material`,
+  `prefer_grouping_by_client`, `limit_setups_per_day_on_machine`.
+- Idiome **CHOICE/DISJUNCTION** (machine optionnelle) → `prefer_machine_over_other`,
+  `operator_avoidance/preference` (nécessite assignment opérateur en variable).
+
+À traiter en 1-2 sessions suivantes. Le scaffolding est en place, ce sont des
+ajouts incrémentaux qui ne touchent pas l'engine.
+
+---
+
 ## Prochaines étapes (à reprendre ultérieurement)
 
-### Option recommandée : continuer en parallèle
+### Suite directe
 
-1. **Phase 1.2** — Objectif composite (makespan + tardiness + stability) — **prioritaire produit**
-2. **Phase 1.1.opt** — Migration setup pattern — à insérer avant Gate 1, peut être fait en parallèle ou plus tard
-3. **Phase 1.3** — Calibration dynamique des poids
-4. ... (1.4-1.8 selon `v0-status.md`)
-
-### Options alternatives discutées
-
-- **Faire 1.1.opt tout de suite** : cohérent avec la discipline "stabilise avant de continuer", mais retarde la valeur produit
-- **Pauser et faire un point stratégique** : utile si remise en question du wedge ou de la séquence
-
-À discuter à la reprise.
+1. **Phase 1.6 (suite)** — 2 idiomes restants + 4 translators (COUNT + CHOICE)
+2. **Phase 1.1.opt** — Migration setup pattern — prioritaire avant scale réel
+3. **Phase 1.2** — Objectif composite (calibration des poids inter-objectifs)
+4. **Phase 1.3-1.5** — Calibration, replanification, stabilité
 
 ---
 

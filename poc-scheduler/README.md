@@ -72,7 +72,8 @@ poc-scheduler/
 │   │   ├── scoring.py          # Score de confiance (4 métriques + hard gate)
 │   │   ├── simulation.py       # Simulation post-hoc (verdict ACCEPT/WARN/REJECT)
 │   │   ├── circuit_breaker.py  # Circuit breaker INFEASIBLE (3 retries + MIS)
-│   │   └── pipeline.py         # Pipeline complet (solve → sim → score → decide)
+│   │   ├── pipeline.py         # Pipeline complet (solve → sim → score → decide)
+│   │   └── soft_constraints.py # WeightedObjectivePattern + SoftPenaltyVar (1.6)
 │   ├── preflight/              # Pre-flight CSV générique (vertical-agnostic)
 │   ├── loaders/                # Loaders génériques (Taillard, benchmark runner)
 │   ├── llm/                    # Couche LLM générique (provider, parsing)
@@ -89,6 +90,7 @@ poc-scheduler/
 │           ├── preflight_config.py    # MECH_COLUMN_PATTERNS, MECH_REQUIRED_*
 │           ├── scoring_config.py      # MECH_CONFIDENCE_WEIGHTS
 │           ├── simulation_config.py   # MECH_SIMULATION_THRESHOLDS
+│           ├── soft_translators.py    # 3 translators NL→pénalités CP-SAT (1.6)
 │           ├── prompts/               # 5 prompts + 2 schémas (markdown)
 │           └── agents/                # 5 agents Phase 3
 │               ├── extraction_questionnaire.py  # 3.4
@@ -120,6 +122,6 @@ narratifs (`../phase-{0,1,2}-report.md`).
 **Étape courante : Phase 2 — Trust layer technique.**
 
 - ✅ Phase 0 stabilisée (Gate 0 ✓ : OR-Tools validé sur Taillard)
-- 🟡 Phase 1 en cours (1.1 ✓, 1.1.opt et 1.2-1.8 restantes)
+- 🟡 Phase 1 en cours (1.1 ✓, 1.6 🟡 démarrée — 3/5 translators soft constraints livrés ; 1.1.opt et 1.2-1.5/1.7-1.8 restantes)
 - ✅ **Phase 2 stabilisée + Gate 1 ✓** (trust layer technique livrée, 0 erreur silencieuse / 20 ateliers tests)
 - ✅ **Phase 3 stabilisée** (3.3-3.8 livrés, 13 trials réels OK, prompts validés ; 3.1/3.2 MCP abandonnés)

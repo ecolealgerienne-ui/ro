@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from enum import StrEnum
 from typing import Any
 
@@ -33,6 +33,12 @@ from src.core.pattern import (
     SharedResourceExclusionPattern,
     UnavailableIntervalsPattern,
 )
+from src.core.soft_constraints import SoftPenaltyVar, WeightedObjectivePattern
+
+# Signature d'un builder de soft penalties : la verticale fournit cette fonction
+# pour traduire ses soft constraints en penalty terms CP-SAT. Le solver est
+# vertical-agnostic et ne connait pas les categories metier.
+SoftPenaltyBuilder = Callable[..., Sequence[SoftPenaltyVar]]
 
 _logger = logging.getLogger(__name__)
 
@@ -114,12 +120,26 @@ class JSSPSolver:
         self.num_workers = num_workers
         self.log_search_progress = log_search_progress
 
-    def solve(self, instance: WorkshopInstance) -> SolverResult:
+    def solve(
+        self,
+        instance: WorkshopInstance,
+        *,
+        soft_penalty_builder: (SoftPenaltyBuilder | None) = None,
+    ) -> SolverResult:
         """Construit le modèle CP-SAT et résout.
 
         Applique les patterns selon les `has_*` properties de l'instance :
-        toujours NoOverlap + Precedence + Makespan, conditionnellement les
-        patterns industriels.
+        toujours NoOverlap + Precedence + Makespan (ou WeightedObjective si
+        des soft penalties sont fournies), conditionnellement les patterns
+        industriels.
+
+        Args:
+            instance: instance JSSP a resoudre.
+            soft_penalty_builder: optionnel — callable qui prend
+                `(model, instance, op_vars, horizon)` et retourne une liste de
+                `SoftPenaltyVar`. Permet a la verticale de plugger ses
+                translators (cf. `verticals/<name>/soft_translators.py`). Si
+                None : objectif = makespan seul (comportement legacy).
         """
         model = cp_model.CpModel()
         horizon = self._compute_horizon(instance)
@@ -237,13 +257,35 @@ class JSSPSolver:
                 )
             patterns_applied.append(SharedResourceExclusionPattern.name)
 
-        # --- Makespan objective ---
+        # --- Objective (makespan + optional soft penalties) ---
         last_op_ends = [
             op_vars[(job.job_id, max(op.sequence_idx for op in job.operations))]["end"]
             for job in instance.jobs
         ]
-        MakespanObjectivePattern().apply(model, end_vars=last_op_ends, horizon=horizon)
-        patterns_applied.append(MakespanObjectivePattern.name)
+        soft_penalties: list[SoftPenaltyVar] = []
+        if soft_penalty_builder is not None:
+            soft_penalties = list(
+                soft_penalty_builder(
+                    model=model,
+                    instance=instance,
+                    op_vars=op_vars,
+                    horizon=horizon,
+                )
+            )
+
+        if soft_penalties:
+            makespan_var = WeightedObjectivePattern().apply(
+                model,
+                end_vars=last_op_ends,
+                horizon=horizon,
+                soft_penalties=soft_penalties,
+            )
+            patterns_applied.append(WeightedObjectivePattern.name)
+        else:
+            makespan_var = MakespanObjectivePattern().apply(
+                model, end_vars=last_op_ends, horizon=horizon
+            )
+            patterns_applied.append(MakespanObjectivePattern.name)
 
         # --- Solving ---
         solver = cp_model.CpSolver()
@@ -260,7 +302,9 @@ class JSSPSolver:
         schedule: list[ScheduleAssignment] = []
         makespan: int | None = None
         if status in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE):
-            makespan = int(solver.objective_value)
+            # Avec soft penalties, solver.objective_value = somme ponderee.
+            # On lit toujours la makespan_var explicitement pour avoir le makespan brut.
+            makespan = int(solver.value(makespan_var))
             for (job_id, seq_idx), v in op_vars.items():
                 schedule.append(
                     ScheduleAssignment(
