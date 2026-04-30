@@ -30,6 +30,9 @@ from src.verticals.mech_workshop.soft_translators import (
     WEIGHT_SCALE,
     translate_avoid_machine_during_period,
     translate_encourage_early_completion,
+    translate_limit_ops_per_day_on_machine,
+    translate_prefer_grouping_by_client,
+    translate_prefer_grouping_by_family,
     translate_soft_constraints,
     translate_tardiness_per_job,
 )
@@ -293,11 +296,16 @@ def test_dispatcher_skips_unsupported_categories() -> None:
     instance = _instance_two_jobs_with_deadlines((None, None))
     model = cp_model.CpModel()
     op_vars = _build_op_vars(model, instance, horizon=100)
+    # `prefer_machine_over_other` necessite la machine en variable de decision
+    # (refactor non livre en V1) — le dispatcher doit skip silencieusement.
     constraints = [
         SoftConstraint(
-            natural_language="x",
-            category="prefer_grouping_by_material",  # pas implementé en V1
-            parameters={"material_reference": "alu"},
+            natural_language="privilegier TOUR-01 sur TOUR-02",
+            category="prefer_machine_over_other",
+            parameters={
+                "preferred_machine_reference": "TOUR-01",
+                "over_machine_reference": "TOUR-02",
+            },
             weight_hint=0.5,
             weight_rationale="x",
             confidence="medium",
@@ -486,4 +494,370 @@ def test_solver_5_hard_3_soft_cohabitate() -> None:
     assert result.makespan is not None
     assert result.makespan > 0
     # Le pattern weighted_objective doit etre dans patterns_applied
+    assert "weighted_objective" in result.patterns_applied
+
+
+# ---------- Translator : limit_ops_per_day_on_machine ----------
+
+
+def test_limit_ops_per_day_zero_excess_when_under_threshold() -> None:
+    """3 ops sur m0, max=5 par jour : pas de penalite."""
+    instance = WorkshopInstance(
+        name="limit_ok",
+        jobs=[
+            Job(
+                job_id=j,
+                operations=[Operation(job_id=j, sequence_idx=0, machine_id=0, duration=2)],
+            )
+            for j in range(3)
+        ],
+        machines=[Machine(machine_id=0)],
+    )
+    model = cp_model.CpModel()
+    op_vars = _build_op_vars(model, instance, horizon=100)
+    sc = SoftConstraint(
+        natural_language="max 5 changements/jour",
+        category="limit_setups_per_day_on_machine",
+        parameters={"machine_reference": "M0", "max_setups_per_day": 5},
+        weight_hint=0.7,
+        weight_rationale="x",
+        confidence="high",
+    )
+    sp = translate_limit_ops_per_day_on_machine(
+        model,
+        instance=instance,
+        op_vars=op_vars,
+        horizon=100,
+        constraint=sc,
+        machine_name_to_id={"M0": 0},
+        day_offsets=[(0, 100)],
+    )
+    assert sp is not None
+    model.minimize(sp.var)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status in (cp_model.OPTIMAL, cp_model.FEASIBLE)
+    assert solver.value(sp.var) == 0
+
+
+def test_limit_ops_per_day_returns_none_for_unknown_machine() -> None:
+    instance = WorkshopInstance(
+        name="x",
+        jobs=[
+            Job(
+                job_id=0,
+                operations=[Operation(job_id=0, sequence_idx=0, machine_id=0, duration=2)],
+            )
+        ],
+        machines=[Machine(machine_id=0)],
+    )
+    model = cp_model.CpModel()
+    op_vars = _build_op_vars(model, instance, horizon=100)
+    sc = SoftConstraint(
+        natural_language="x",
+        category="limit_setups_per_day_on_machine",
+        parameters={"machine_reference": "INCONNUE", "max_setups_per_day": 3},
+        weight_hint=0.5,
+        weight_rationale="x",
+        confidence="medium",
+    )
+    sp = translate_limit_ops_per_day_on_machine(
+        model,
+        instance=instance,
+        op_vars=op_vars,
+        horizon=100,
+        constraint=sc,
+        machine_name_to_id={"M0": 0},
+        day_offsets=[(0, 100)],
+    )
+    assert sp is None
+
+
+# ---------- Translator : prefer_grouping_by_family ----------
+
+
+def test_grouping_by_family_zero_when_no_multi_op_group() -> None:
+    """Un seul op par (machine, family) => spread vide => None."""
+    instance = WorkshopInstance(
+        name="grp_single",
+        jobs=[
+            Job(
+                job_id=0,
+                operations=[
+                    Operation(job_id=0, sequence_idx=0, machine_id=0, duration=2, family_id=0)
+                ],
+            ),
+            Job(
+                job_id=1,
+                operations=[
+                    Operation(job_id=1, sequence_idx=0, machine_id=0, duration=2, family_id=1)
+                ],
+            ),
+        ],
+        machines=[Machine(machine_id=0)],
+    )
+    model = cp_model.CpModel()
+    op_vars = _build_op_vars(model, instance, horizon=100)
+    sc = SoftConstraint(
+        natural_language="grouper",
+        category="prefer_grouping_by_material",
+        parameters={},
+        weight_hint=0.3,
+        weight_rationale="x",
+        confidence="medium",
+    )
+    sp = translate_prefer_grouping_by_family(
+        model, instance=instance, op_vars=op_vars, horizon=100, constraint=sc
+    )
+    assert sp is None
+
+
+def test_grouping_by_family_minimizes_spread() -> None:
+    """3 ops m0 family 0 (dur 2) : minimiser spread => collees [0-2, 2-4, 4-6] => spread=6."""
+    instance = WorkshopInstance(
+        name="grp_minimize",
+        jobs=[
+            Job(
+                job_id=j,
+                operations=[
+                    Operation(job_id=j, sequence_idx=0, machine_id=0, duration=2, family_id=0)
+                ],
+            )
+            for j in range(3)
+        ],
+        machines=[Machine(machine_id=0)],
+    )
+    model = cp_model.CpModel()
+    op_vars = _build_op_vars(model, instance, horizon=100)
+    sc = SoftConstraint(
+        natural_language="grouper",
+        category="prefer_grouping_by_material",
+        parameters={},
+        weight_hint=1.0,
+        weight_rationale="x",
+        confidence="high",
+    )
+    sp = translate_prefer_grouping_by_family(
+        model, instance=instance, op_vars=op_vars, horizon=100, constraint=sc
+    )
+    assert sp is not None
+    model.minimize(sp.var)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status in (cp_model.OPTIMAL, cp_model.FEASIBLE)
+    # 3 ops dur 2 sur 1 machine, no_overlap : ends 2, 4, 6, starts 0, 2, 4 => spread = 6 - 0 = 6
+    assert solver.value(sp.var) == 6
+
+
+# ---------- Translator : prefer_grouping_by_client ----------
+
+
+def test_grouping_by_client_filters_and_returns_none_when_no_client() -> None:
+    instance = _instance_two_jobs_with_deadlines((None, None))  # clients = (None, None)
+    model = cp_model.CpModel()
+    op_vars = _build_op_vars(model, instance, horizon=100)
+    sc = SoftConstraint(
+        natural_language="grouper Safran",
+        category="prefer_grouping_by_client",
+        parameters={"client_reference": "Safran"},
+        weight_hint=0.5,
+        weight_rationale="x",
+        confidence="medium",
+    )
+    sp = translate_prefer_grouping_by_client(
+        model, instance=instance, op_vars=op_vars, horizon=100, constraint=sc
+    )
+    assert sp is None  # aucun job avec client = "Safran"
+
+
+def test_grouping_by_client_aggregates_per_machine_per_client() -> None:
+    """4 jobs, 2 par client, 1 machine. Spread par client = end_dernier - start_premier."""
+    instance = WorkshopInstance(
+        name="grp_clients",
+        jobs=[
+            Job(
+                job_id=0,
+                operations=[Operation(job_id=0, sequence_idx=0, machine_id=0, duration=2)],
+                client="Safran",
+            ),
+            Job(
+                job_id=1,
+                operations=[Operation(job_id=1, sequence_idx=0, machine_id=0, duration=2)],
+                client="Safran",
+            ),
+            Job(
+                job_id=2,
+                operations=[Operation(job_id=2, sequence_idx=0, machine_id=0, duration=2)],
+                client="Bosch",
+            ),
+            Job(
+                job_id=3,
+                operations=[Operation(job_id=3, sequence_idx=0, machine_id=0, duration=2)],
+                client="Bosch",
+            ),
+        ],
+        machines=[Machine(machine_id=0)],
+    )
+    model = cp_model.CpModel()
+    op_vars = _build_op_vars(model, instance, horizon=100)
+    sc = SoftConstraint(
+        natural_language="grouper par client",
+        category="prefer_grouping_by_client",
+        parameters={},  # tous clients
+        weight_hint=1.0,
+        weight_rationale="x",
+        confidence="high",
+    )
+    sp = translate_prefer_grouping_by_client(
+        model, instance=instance, op_vars=op_vars, horizon=100, constraint=sc
+    )
+    assert sp is not None
+    # Minimiser le spread total : Safran [0,2]+[2,4] => spread 4 ; Bosch [4,6]+[6,8] => spread 4
+    # OU n'importe quelle alternance regroupee. Total min = 4+4 = 8.
+    model.minimize(sp.var)
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    assert status in (cp_model.OPTIMAL, cp_model.FEASIBLE)
+    assert solver.value(sp.var) == 8
+
+
+# ---------- Cohabitation 5 hard + 5 soft (critere de sortie 1.6) ----------
+
+
+def test_solver_5_hard_5_soft_cohabitate() -> None:
+    """Critere de sortie 1.6 : 5 soft + 5 hard cohabitent.
+
+    Hard : NoOverlap, Precedence, Setup-dependent, Calendar (unavailability),
+    Operator (qualifications), SharedResource — > 5 patterns hard actifs.
+    Soft : tardiness (client_priority), avoid_period, encourage_early_completion,
+    limit_ops_per_day, prefer_grouping_by_family — 5 soft simultanes.
+    """
+    instance = WorkshopInstance(
+        name="cohab_5h_5s",
+        jobs=[
+            Job(
+                job_id=0,
+                operations=[
+                    Operation(
+                        job_id=0,
+                        sequence_idx=0,
+                        machine_id=0,
+                        duration=4,
+                        family_id=0,
+                        qualified_operator_ids=[0],
+                    ),
+                    Operation(
+                        job_id=0,
+                        sequence_idx=1,
+                        machine_id=1,
+                        duration=3,
+                        family_id=0,
+                        qualified_operator_ids=[0],
+                    ),
+                ],
+                deadline=40,
+                client="Safran",
+            ),
+            Job(
+                job_id=1,
+                operations=[
+                    Operation(
+                        job_id=1,
+                        sequence_idx=0,
+                        machine_id=0,
+                        duration=3,
+                        family_id=1,
+                        qualified_operator_ids=[0, 1],
+                    ),
+                ],
+                deadline=30,
+                client="Bosch",
+            ),
+            Job(
+                job_id=2,
+                operations=[
+                    Operation(
+                        job_id=2,
+                        sequence_idx=0,
+                        machine_id=0,
+                        duration=2,
+                        family_id=0,
+                        qualified_operator_ids=[0, 1],
+                    ),
+                ],
+                deadline=50,
+                client="Safran",
+            ),
+        ],
+        machines=[Machine(machine_id=0), Machine(machine_id=1)],
+        n_operators=2,
+        transition_matrix=[[0, 5], [5, 0]],
+        shared_resources=[
+            SharedResourceSpec(
+                resource_name="aspiration", machine_ids=[0, 1], max_concurrent=1
+            )
+        ],
+        machine_unavailability=[
+            MachineUnavailabilitySpec(machine_id=0, periods=[(0, 1)])
+        ],
+    )
+
+    def builder(*, model, instance, op_vars, horizon):
+        return translate_soft_constraints(
+            model,
+            instance=instance,
+            op_vars=op_vars,
+            horizon=horizon,
+            soft_constraints=[
+                SoftConstraint(
+                    natural_language="OF Safran prioritaires",
+                    category="client_priority",
+                    parameters={"client_reference": "Safran"},
+                    weight_hint=0.6,
+                    weight_rationale="x",
+                    confidence="high",
+                ),
+                SoftConstraint(
+                    natural_language="evite m0 nuit",
+                    category="avoid_machine_during_period",
+                    parameters={"machine_reference": "M0", "period_type": "night"},
+                    weight_hint=0.3,
+                    weight_rationale="x",
+                    confidence="medium",
+                ),
+                SoftConstraint(
+                    natural_language="finis tot",
+                    category="other",
+                    parameters={"kind": "encourage_early_completion"},
+                    weight_hint=0.2,
+                    weight_rationale="x",
+                    confidence="high",
+                ),
+                SoftConstraint(
+                    natural_language="max 4 ops/jour sur m0",
+                    category="limit_setups_per_day_on_machine",
+                    parameters={"machine_reference": "M0", "max_setups_per_day": 4},
+                    weight_hint=0.5,
+                    weight_rationale="x",
+                    confidence="medium",
+                ),
+                SoftConstraint(
+                    natural_language="grouper meme matiere",
+                    category="prefer_grouping_by_material",
+                    parameters={},
+                    weight_hint=0.4,
+                    weight_rationale="x",
+                    confidence="medium",
+                ),
+            ],
+            machine_name_to_id={"M0": 0, "M1": 1},
+            period_resolver={"night": (60, 90)},
+            day_offsets=[(0, 30), (30, 60), (60, 90)],
+        )
+
+    solver = JSSPSolver(time_limit_seconds=15.0)
+    result = solver.solve(instance, soft_penalty_builder=builder)
+    assert result.status in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE)
+    assert result.makespan is not None
+    assert result.makespan > 0
     assert "weighted_objective" in result.patterns_applied

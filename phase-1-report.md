@@ -4,7 +4,7 @@
 > Documente les résultats concrets, décisions techniques et métriques de chaque étape.
 > Mis à jour à chaque étape stabilisée.
 
-**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.6 🟡 démarrée (3/5 translators), 1.1.opt + 1.2-1.5 + 1.7-1.8 en attente**
+**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.6 ✅ (6 translators / 4 idiomes), 1.1.opt + 1.2-1.5 + 1.7-1.8 en attente**
 
 ---
 
@@ -153,13 +153,13 @@ Note : 168 reportés pendant exécution, 163 dans la liste — diff potentiellem
 
 ---
 
-## Étape 1.6 — Soft constraints en pénalités (côté solver) 🟡 démarrée 2026-04-30
+## Étape 1.6 — Soft constraints en pénalités (côté solver) ✅ stabilisée 2026-04-30
 
 **Objectif** : pendant côté CP-SAT du module 3.6 (NL → JSON typé). Traduit les
 `SoftConstraint` produites par l'agent en penalty terms intégrés à l'objectif :
 `minimize(makespan + Σ w_i × penalty_i)`.
 
-### Livrables (V1 = 3/5 translators)
+### Livrables (6 translators / 4 idiomes)
 
 **Engine `src/core/soft_constraints.py`** (vertical-agnostic) :
 - `SoftPenaltyVar` (dataclass frozen) : label + weight entier + var CP-SAT.
@@ -172,41 +172,57 @@ Note : 168 reportés pendant exécution, 163 dans la liste — diff potentiellem
 **Extension du modèle `Job`** : `deadline: int | None`, `client: str | None`
 (optionnels, backward-compatible).
 
-**Verticale méca — 3 translators sur 5 visés** :
+**Verticale méca — 6 translators couvrant 4 idiomes CP-SAT distincts** :
 
 | # | Translator | Idiome CP-SAT | Catégorie 3.6 traitée |
 |---|------------|---------------|------------------------|
-| 1 | `tardiness_per_job` | PROPORTIONNEL : `max(0, end-deadline)` | `client_priority` |
-| 2 | `avoid_machine_during_period` | BOOLÉEN reified : flag overlap | `avoid_machine_during_period` |
-| 3 | `encourage_early_completion` | PROPORTIONNEL aggregat : Σ ends | (escape `other`) |
+| 1 | `tardiness_per_job` | **PROPORTIONNEL** : `max(0, end-deadline)` | `client_priority` |
+| 2 | `avoid_machine_during_period` | **BOOLÉEN reified** : flag overlap | `avoid_machine_during_period` |
+| 3 | `encourage_early_completion` | **PROPORTIONNEL aggregat** : Σ ends | escape `other` |
+| 4 | `limit_ops_per_day_on_machine` | **COUNT bucketé** : excès par jour | `limit_setups_per_day_on_machine` |
+| 5 | `prefer_grouping_by_family` | **SPREAD min/max** : Σ (max_end − min_start) | `prefer_grouping_by_material` |
+| 6 | `prefer_grouping_by_client` | **SPREAD min/max** group par client | `prefer_grouping_by_client` |
 
 Dispatcher `translate_soft_constraints()` qui invoque le bon translator selon
-`SoftConstraintCategory`.
+`SoftConstraintCategory`. Paramètres : `machine_name_to_id`, `period_resolver`,
+`day_offsets`. Catégories non gérables → skip silencieusement.
 
 **Intégration solver** : `JSSPSolver.solve()` accepte `soft_penalty_builder`
 (callable injectable). Si fourni → bascule sur `WeightedObjectivePattern`.
 Sinon → comportement legacy (makespan seul).
 
-### Tests (12 ajoutés, 291 total)
+### Tests (19 ajoutés, 298 total)
 
 - 3 sur `WeightedObjectivePattern` (sans soft, avec soft, validation arguments)
 - 2 sur `tardiness_per_job`
 - 2 sur `avoid_machine_during_period`
 - 1 sur `encourage_early_completion`
-- 1 sur dispatcher
-- 3 d'intégration solver dont **`test_solver_5_hard_3_soft_cohabitate`** : 5 hard
-  patterns (NoOverlap + Precedence + Setup + Calendar + Operator + SharedResource)
-  + 3 soft simultanément → ✓ passe.
+- 2 sur `limit_ops_per_day_on_machine` (zéro excès, machine inconnue → None)
+- 2 sur `prefer_grouping_by_family` (None si groupes singletons, spread = 6 sur 3 ops dur 2)
+- 2 sur `prefer_grouping_by_client` (None si pas de client match, spread total = 8)
+- 1 sur dispatcher (skip catégorie non implémentée comme `prefer_machine_over_other`)
+- 4 d'intégration solver dont :
+  - **`test_solver_5_hard_3_soft_cohabitate`** ✓
+  - **`test_solver_5_hard_5_soft_cohabitate`** : 5 hard (NoOverlap + Precedence
+    + Setup + Calendar + Operator + SharedResource) + **5 soft simultanés**
+    (tardiness + avoid_period + encourage_early + limit_ops_per_day + grouping)
+    → ✓ passe. **Critère de sortie 1.6 atteint.**
 
-### Reste à faire pour clore 1.6 (atteindre 5 soft)
+### Catégories non livrées (déférées V2)
 
-- Idiome **COUNT** (transitions par machine) → `prefer_grouping_by_material`,
-  `prefer_grouping_by_client`, `limit_setups_per_day_on_machine`.
-- Idiome **CHOICE/DISJUNCTION** (machine optionnelle) → `prefer_machine_over_other`,
-  `operator_avoidance/preference` (nécessite assignment opérateur en variable).
+3 catégories du module 3.6 ne sont pas implémentées dans cette V1 :
 
-À traiter en 1-2 sessions suivantes. Le scaffolding est en place, ce sont des
-ajouts incrémentaux qui ne touchent pas l'engine.
+- **`prefer_machine_over_other`** : nécessite que `Operation.machine_id`
+  devienne une variable de décision (refactor modèle non trivial).
+- **`prefer_operation_in_shift`** : encodage cyclique modulo (shift matin /
+  après-midi / nuit chaque jour). À traiter avec une utility helper de cycles.
+- **`operator_avoidance` / `operator_preference`** : nécessite l'exposition
+  des variables `present[i][k]` du `QualifiedOperatorPattern` au-delà du
+  solver. Refactor du contrat `op_vars` requis.
+
+Ces 3 catégories sont documentées dans la docstring du module
+`soft_translators.py` et seront traitées post-pilotes design partners (priorité
+basse, le scaffolding existant les accueille sans rework).
 
 ---
 
@@ -214,10 +230,13 @@ ajouts incrémentaux qui ne touchent pas l'engine.
 
 ### Suite directe
 
-1. **Phase 1.6 (suite)** — 2 idiomes restants + 4 translators (COUNT + CHOICE)
-2. **Phase 1.1.opt** — Migration setup pattern — prioritaire avant scale réel
-3. **Phase 1.2** — Objectif composite (calibration des poids inter-objectifs)
-4. **Phase 1.3-1.5** — Calibration, replanification, stabilité
+1. **Phase 1.1.opt** — Migration setup pattern — **toujours prioritaire** avant
+   scale réel (bottleneck identifié en 1.1d)
+2. **Phase 1.2** — Objectif composite (calibration des poids inter-objectifs
+   makespan / tardiness / stabilité)
+3. **Phase 1.3-1.5** — Calibration, replanification, stabilité
+4. **Phase 1.7** — Clustering automatique des familles de pièces
+5. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
 
 ---
 
