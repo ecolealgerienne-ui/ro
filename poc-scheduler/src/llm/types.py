@@ -16,7 +16,7 @@ class Role(StrEnum):
 class Message(BaseModel):
     """Un message dans une conversation LLM."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     role: Role
     content: str = Field(..., min_length=1)

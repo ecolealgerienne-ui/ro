@@ -288,7 +288,7 @@ def test_setup_rejects_negative_values() -> None:
     model = cp_model.CpModel()
     s = model.new_int_var(0, 10, "s")
     e = model.new_int_var(0, 10, "e")
-    with pytest.raises(ValueError, match="négatives"):
+    with pytest.raises(ValueError, match="negatives"):
         add_no_overlap_with_setup(model, [s, s], [e, e], [0, 0], [[0, -1], [1, 0]])
 
 
@@ -571,5 +571,5 @@ def test_unavailable_rejects_invalid_period() -> None:
         make_unavailable_intervals(model, [(10, 5)])
     with pytest.raises(ValueError, match=r"start.*<.*end"):
         make_unavailable_intervals(model, [(5, 5)])
-    with pytest.raises(ValueError, match="négatives"):
+    with pytest.raises(ValueError, match="negatives"):
         make_unavailable_intervals(model, [(-1, 5)])

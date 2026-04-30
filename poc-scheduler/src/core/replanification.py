@@ -44,7 +44,7 @@ class FreezeSpec(BaseModel):
             solveur ajoutera `start_var == start_time` pour chaque entree.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     operation_starts: dict[tuple[int, int], int] = Field(default_factory=dict)
 
@@ -65,7 +65,7 @@ class SolutionHintSpec(BaseModel):
             d'autres contraintes, CP-SAT les ignore silencieusement.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     operation_starts: dict[tuple[int, int], int] = Field(default_factory=dict)
 

@@ -38,7 +38,7 @@ from src.verticals.mech_workshop.distributions import (
 class GenerationParams(BaseModel):
     """Paramètres de génération d'un atelier."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     n_machines_min: int = Field(default=5, ge=1)
     n_machines_max: int = Field(default=25, ge=1)
@@ -86,7 +86,7 @@ class GenerationParams(BaseModel):
 
 
 class SyntheticMachine(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     machine_id: int = Field(..., ge=0)
     name: str
@@ -94,7 +94,7 @@ class SyntheticMachine(BaseModel):
 
 
 class SyntheticOperator(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     operator_id: int = Field(..., ge=0)
     name: str
@@ -102,7 +102,7 @@ class SyntheticOperator(BaseModel):
 
 
 class SyntheticOperation(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     sequence_idx: int = Field(..., ge=0)
     operation_type: str
@@ -111,7 +111,7 @@ class SyntheticOperation(BaseModel):
 
 
 class SyntheticOrder(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     order_id: str
     client: str
@@ -125,7 +125,7 @@ class SyntheticOrder(BaseModel):
 class SharedResource(BaseModel):
     """Ressource physique partagée par plusieurs machines (aspiration, 400V, espace)."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     resource_name: str
     machine_ids: list[int]
@@ -135,7 +135,7 @@ class SharedResource(BaseModel):
 class WorkCalendar(BaseModel):
     """Calendrier de travail simple : durée d'équipe × nb équipes × jours/sem."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     daily_work_minutes: int = Field(..., ge=1)
     n_shifts: int = Field(..., ge=1, le=3)
@@ -147,7 +147,7 @@ class WorkCalendar(BaseModel):
 
 
 class SyntheticWorkshop(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     metadata: dict[str, str | int]
     machines: list[SyntheticMachine]

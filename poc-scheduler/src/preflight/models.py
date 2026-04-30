@@ -50,7 +50,7 @@ class PreflightErrorType(StrEnum):
 class PreflightError(BaseModel):
     """Une erreur ou anomalie détectée pendant le pre-flight."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     type: PreflightErrorType
     severity: Severity
@@ -73,7 +73,7 @@ class CleanedRow(BaseModel):
       laissée au LLM)
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     raw_index: int = Field(..., ge=0, description="Index 0-indexé dans le CSV source")
     cells: dict[str, str] = Field(
@@ -85,7 +85,7 @@ class CleanedRow(BaseModel):
 class PreflightReport(BaseModel):
     """Résultat complet d'un pre-flight."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     csv_parseable: bool
     detected_separator: str | None = None

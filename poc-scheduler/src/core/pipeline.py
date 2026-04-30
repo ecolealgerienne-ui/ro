@@ -69,7 +69,7 @@ class PipelineDecisionKind(StrEnum):
 class PipelineDecision(BaseModel):
     """Decision finale agregee + raisons humaines."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     kind: PipelineDecisionKind
     reasons: list[str] = Field(default_factory=list)
@@ -78,7 +78,7 @@ class PipelineDecision(BaseModel):
 class PipelineReport(BaseModel):
     """Rapport complet d'execution du pipeline."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     instance_name: str
     circuit_breaker: CircuitBreakerResult

@@ -38,7 +38,7 @@ CSV_FIELDS: tuple[str, ...] = (
 class BenchmarkRecord(BaseModel):
     """Une ligne de résultat de benchmark."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     instance_name: str
     n_jobs: int = Field(..., ge=1)

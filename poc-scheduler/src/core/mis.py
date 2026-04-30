@@ -27,8 +27,8 @@ serieux ; pour les tests CI utiliser des instances minimales (~3 candidats).
 Verticalite :
 - L'algorithme et les `MISElement` sont universels (job, unavailability,
   shared_resource sont des concepts du modele engine).
-- La verticale peut enrichir le rendering NL via `ExplanationAgent` (3.7) qui
-  transforme un `MISReport` en explication chef d'atelier. V1 : le
+- La verticale peut enrichir le rendering NL via un agent LLM dedie qui
+  transforme un `MISReport` en explication metier. V1 : le
   `MISReport.to_summary()` engine produit deja un texte exploitable.
 
 Integration : ce module fournit `default_mis_extractor` que
@@ -60,7 +60,7 @@ class MISElement(BaseModel):
     Equivalent a un singleton dans le MIS.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     kind: MISElementKind
     identifier: str = Field(..., min_length=1, description="Identifiant lisible (ex: 'job_5').")
@@ -70,7 +70,7 @@ class MISElement(BaseModel):
 class CorrectiveAction(BaseModel):
     """Action corrective suggeree pour rendre l'instance FEASIBLE."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     target_kind: MISElementKind
     target_identifier: str
@@ -81,7 +81,7 @@ class CorrectiveAction(BaseModel):
 class MISReport(BaseModel):
     """Rapport complet d'extraction MIS."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     initial_status: SolverStatus
     elements: list[MISElement] = Field(default_factory=list)
@@ -95,10 +95,10 @@ class MISReport(BaseModel):
         return len(self.elements) > 0
 
     def to_summary(self) -> str:
-        """Texte court (chef d'atelier-friendly) resumant le MIS et les actions.
+        """Texte court (utilisateur metier-friendly) resumant le MIS et les actions.
 
         Sert de fallback si pas d'agent LLM disponible. Pour un rendering plus
-        riche, passer le `MISReport` a `ExplanationAgent` (3.7) en serialisant
+        riche, passer le `MISReport` a un agent NL de la verticale en serialisant
         via `model_dump()`.
         """
         if self.initial_status is not SolverStatus.INFEASIBLE:

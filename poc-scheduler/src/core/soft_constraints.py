@@ -41,8 +41,8 @@ class SoftPenaltyVar:
     Attributs :
         label   : identifiant lisible (pour tracing / debugging post-solving).
         weight  : poids entier strictement positif (CP-SAT n'aime pas les floats
-                  dans l'objectif). La verticale convertit les `weight_hint`
-                  flottants de `SoftConstraintsAgent` en entiers (typiquement
+                  dans l'objectif). La verticale convertit ses poids flottants
+                  en entiers via une echelle commune (typiquement
                   `int(weight_hint * 100)`).
         var     : `cp_model.IntVar` representant la penalite (>= 0). La
                   semantique exacte (compte, overlap, lateness, etc.) depend
@@ -242,8 +242,9 @@ def tier_weighted_stability_var(
 
     Args:
         instance: WorkshopInstance (pour acceder a `Job.criticality`).
-        weight_per_tier: mapping `tier -> weight_multiplier`. Convention typique
-            (mech_workshop) : `{1: 10, 2: 3, 3: 1}`.
+        weight_per_tier: mapping `tier -> weight_multiplier`. La calibration
+            metier est portee par la verticale (ex : `{1: 10, 2: 3, 3: 1}` pour
+            une convention "tier 1 critique = 10x tier 3 standard").
         default_weight: poids applique aux jobs sans `criticality` (ou avec
             tier absent de `weight_per_tier`). Defaut 1.
 

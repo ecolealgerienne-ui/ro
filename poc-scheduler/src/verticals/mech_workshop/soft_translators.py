@@ -50,7 +50,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from src.core.models import Job, WorkshopInstance
+from src.core.models import Job, WorkshopInstance, validate_time_period
 from src.core.soft_constraints import SoftPenaltyVar
 from src.verticals.mech_workshop.agents import SoftConstraint
 
@@ -154,10 +154,7 @@ def translate_avoid_machine_during_period(
             l'horizon. La verticale convertit `period_type` (night/weekend/...)
             en bornes concretes selon le calendrier.
     """
-    if period_start < 0 or period_end <= period_start:
-        raise ValueError(
-            f"avoid_machine_during_period : periode invalide [{period_start}, {period_end})"
-        )
+    validate_time_period(period_start, period_end, context="avoid_machine_during_period periode")
 
     machine_ref = constraint.parameters.get("machine_reference")
     if not isinstance(machine_ref, str):

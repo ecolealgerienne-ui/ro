@@ -192,6 +192,7 @@ def test_solver_skips_patterns_when_disabled() -> None:
     assert "shared_resource_exclusion" not in result.patterns_applied
 
 
+@pytest.mark.slow
 def test_e2e_setup_only_increases_or_equal_makespan() -> None:
     """Activer setup ne peut pas réduire le makespan vs sans setup."""
     params = GenerationParams(

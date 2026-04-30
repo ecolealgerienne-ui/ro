@@ -44,7 +44,7 @@ class AttemptKind(StrEnum):
 class Attempt(BaseModel):
     """Trace d'une tentative individuelle."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     index: int = Field(..., ge=0, description="Position dans la sequence (0-indexed).")
     kind: AttemptKind
@@ -65,7 +65,7 @@ class CircuitBreakerOutcome(StrEnum):
 class CircuitBreakerResult(BaseModel):
     """Resultat agrege du circuit breaker."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     outcome: CircuitBreakerOutcome
     final_result: SolverResult

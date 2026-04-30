@@ -65,7 +65,7 @@ class SolverStatus(StrEnum):
 class ScheduleAssignment(BaseModel):
     """Affectation d'une opération sur une machine à un instant donné."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     job_id: int = Field(..., ge=0)
     sequence_idx: int = Field(..., ge=0)
@@ -77,7 +77,7 @@ class ScheduleAssignment(BaseModel):
 class SolverResult(BaseModel):
     """Résultat d'un solving CP-SAT."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     instance_name: str
     status: SolverStatus

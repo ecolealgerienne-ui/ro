@@ -25,7 +25,7 @@ from src.llm.types import Message, Role
 class AgentResult(BaseModel):
     """Reponse structuree d'un agent single-shot."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     parsed: BaseModel
     raw_response: str

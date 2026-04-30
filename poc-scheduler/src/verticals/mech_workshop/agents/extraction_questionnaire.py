@@ -68,7 +68,7 @@ class WorkshopSpec(BaseModel):
 class QuestionnaireAnswers(BaseModel):
     """Wrapper typage faible pour les reponses brutes du questionnaire UI."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     answers: dict[str, str | int | float | bool | list[str] | None]
 

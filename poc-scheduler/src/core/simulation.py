@@ -5,8 +5,8 @@ universelles (fragmentation, micro-pauses, setup/utile, transitions) qui
 temoignent de la qualite REELLE d'un planning au-dela du makespan.
 
 Le solveur minimise le makespan ; il ne penalise pas (sauf via setup-pattern)
-les pieces fragmentees ou les pauses ridiculement courtes. La simulation
-attrape ces signaux qu'un chef d'atelier humain refuserait.
+les unites fragmentees ou les pauses ridiculement courtes. La simulation
+attrape ces signaux qu'un utilisateur metier refuserait.
 
 Pipeline :
     schedule + thresholds -> SimulationReport (metrics + violations)
@@ -35,7 +35,7 @@ class ViolationSeverity(StrEnum):
 class SimulationViolation(BaseModel):
     """Une regle metier violee par le planning."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     rule: str
     severity: ViolationSeverity
@@ -48,7 +48,7 @@ class SimulationViolation(BaseModel):
 class MachineMetrics(BaseModel):
     """Metriques agregees pour une machine."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     machine_id: int
     n_ops: int = Field(..., ge=0)
@@ -63,7 +63,7 @@ class MachineMetrics(BaseModel):
 class JobMetrics(BaseModel):
     """Metriques agregees pour un job (= une commande)."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     job_id: int
     duration_sum: int = Field(..., ge=0)
@@ -87,7 +87,7 @@ class SimulationVerdict(StrEnum):
 class SimulationReport(BaseModel):
     """Resultat complet de la simulation operationnelle."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     verdict: SimulationVerdict
     machines: list[MachineMetrics]

@@ -27,6 +27,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, ClassVar
 
+from src.core.models import validate_time_period
+
 
 class Pattern(ABC):
     """Classe de base abstraite pour tous les patterns CP-SAT."""
@@ -154,7 +156,7 @@ class SequenceDependentSetupPattern(Pattern):
                 )
             for v in row:
                 if v < 0:
-                    raise ValueError(f"transition_matrix : valeurs négatives interdites, vu {v}")
+                    raise ValueError(f"transition_matrix : valeurs negatives interdites, vu {v}")
 
         for fid in family_ids:
             if not 0 <= fid < n_families:
@@ -286,10 +288,7 @@ class UnavailableIntervalsPattern(Pattern):
     ) -> list[Any]:
         intervals: list[Any] = []
         for k, (start, end) in enumerate(periods):
-            if start < 0 or end < 0:
-                raise ValueError(f"Période {k} : bornes négatives ({start}, {end})")
-            if start >= end:
-                raise ValueError(f"Période {k} : start ({start}) doit être < end ({end})")
+            validate_time_period(start, end, context=f"Periode {k}")
             s_var = model.new_int_var(start, start, f"{self.name_prefix}_{k}_s")
             e_var = model.new_int_var(end, end, f"{self.name_prefix}_{k}_e")
             intervals.append(

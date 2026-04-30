@@ -18,10 +18,32 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+def validate_time_period(start: int, end: int, *, context: str) -> None:
+    """Valide qu'une periode (start, end) est bien formee.
+
+    Helper engine generique factorise (avant Sprint 1, dupliquee dans 3 sites :
+    `MachineUnavailabilitySpec._check_periods`, `UnavailableIntervalsPattern.apply`,
+    et le translator `avoid_machine_during_period` de la verticale).
+
+    Args:
+        start: borne inferieure de la periode (inclusive).
+        end: borne superieure (exclusive).
+        context: identifiant lisible pour le message d'erreur (ex:
+            `"machine 3, periode 2"`).
+
+    Raises:
+        ValueError: si start ou end est negatif, ou si start >= end.
+    """
+    if start < 0 or end < 0:
+        raise ValueError(f"{context} : bornes negatives ({start}, {end})")
+    if start >= end:
+        raise ValueError(f"{context} : start ({start}) doit etre < end ({end})")
+
+
 class Operation(BaseModel):
     """Une opération à effectuer sur une machine donnée pour un job donné."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     job_id: int = Field(..., ge=0, description="Identifiant du job parent (0-indexé)")
     sequence_idx: int = Field(..., ge=0, description="Position dans la gamme du job (0-indexé)")
@@ -61,7 +83,7 @@ class Job(BaseModel):
           verticale fournit la table `weight_per_tier` correspondante.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     job_id: int = Field(..., ge=0)
     operations: list[Operation]
@@ -85,6 +107,8 @@ class Job(BaseModel):
 
     @model_validator(mode="after")
     def _check_operations_consistency(self) -> Job:
+        if not self.operations:
+            raise ValueError(f"Job {self.job_id} : au moins une operation requise")
         for idx, op in enumerate(self.operations):
             if op.job_id != self.job_id:
                 raise ValueError(
@@ -104,7 +128,7 @@ class Job(BaseModel):
 class Machine(BaseModel):
     """Une machine de l'atelier."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     machine_id: int = Field(..., ge=0)
     name: str | None = None
@@ -113,7 +137,7 @@ class Machine(BaseModel):
 class SharedResourceSpec(BaseModel):
     """Ressource partagée par plusieurs machines : limite de N opérations actives simultanément."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     resource_name: str
     machine_ids: list[int]
@@ -133,7 +157,7 @@ class SharedResourceSpec(BaseModel):
 class MachineUnavailabilitySpec(BaseModel):
     """Plages d'indisponibilité d'une machine (pauses, MP, weekends)."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     machine_id: int = Field(..., ge=0)
     periods: list[tuple[int, int]]
@@ -141,14 +165,7 @@ class MachineUnavailabilitySpec(BaseModel):
     @model_validator(mode="after")
     def _check_periods(self) -> MachineUnavailabilitySpec:
         for i, (start, end) in enumerate(self.periods):
-            if start < 0 or end < 0:
-                raise ValueError(
-                    f"Machine {self.machine_id}, période {i} : bornes négatives ({start}, {end})"
-                )
-            if start >= end:
-                raise ValueError(
-                    f"Machine {self.machine_id}, période {i} : start ({start}) doit être < end ({end})"
-                )
+            validate_time_period(start, end, context=f"Machine {self.machine_id}, periode {i}")
         return self
 
 
@@ -169,7 +186,7 @@ class WorkshopInstance(BaseModel):
         - machine_unavailability : indisponibilités par machine
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str
     jobs: list[Job]
@@ -258,7 +275,7 @@ class WorkshopInstance(BaseModel):
                 )
             for v in row:
                 if v < 0:
-                    raise ValueError(f"transition_matrix : valeurs négatives interdites ({v})")
+                    raise ValueError(f"transition_matrix : valeurs negatives interdites ({v})")
         # Vérifie que tous les family_id des opérations sont dans la borne
         for job in self.jobs:
             for op in job.operations:

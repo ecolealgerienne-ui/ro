@@ -145,7 +145,7 @@ def test_transition_matrix_must_be_square() -> None:
 
 def test_transition_matrix_rejects_negative() -> None:
     job, machine = _make_simple_instance()
-    with pytest.raises(ValidationError, match="négatives"):
+    with pytest.raises(ValidationError, match="negatives"):
         WorkshopInstance(
             name="test",
             jobs=[job],
@@ -199,7 +199,7 @@ def test_shared_resource_must_reference_existing_machines() -> None:
 def test_machine_unavailability_validates_periods() -> None:
     with pytest.raises(ValidationError, match=r"start.*<.*end"):
         MachineUnavailabilitySpec(machine_id=0, periods=[(10, 5)])
-    with pytest.raises(ValidationError, match="négatives"):
+    with pytest.raises(ValidationError, match="negatives"):
         MachineUnavailabilitySpec(machine_id=0, periods=[(-1, 5)])
 
 

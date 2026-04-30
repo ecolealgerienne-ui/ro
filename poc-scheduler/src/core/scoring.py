@@ -48,7 +48,7 @@ _STATUS_QUALITY: Final[dict[SolverStatus, float]] = {
 class ConfidenceMetric(BaseModel):
     """Une metrique calculee : valeur brute, valeur normalisee dans [0, 1], poids."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str
     raw_value: float
@@ -59,7 +59,7 @@ class ConfidenceMetric(BaseModel):
 class ConfidenceScore(BaseModel):
     """Score agrege + detail des metriques + notes de diagnostic."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     overall: float = Field(..., ge=0.0, le=1.0)
     gate_passed: bool
