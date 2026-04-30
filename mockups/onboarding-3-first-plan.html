@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Premier planning — Mécanique Précision SAS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body { font-family: "Inter", system-ui, sans-serif; }
+      .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; }
+      .pulse-ring { animation: pulse 1.5s ease-out infinite; }
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(79,70,229,0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(79,70,229,0); }
+        100% { box-shadow: 0 0 0 0 rgba(79,70,229,0); }
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 min-h-screen">
+    <!-- Top bar -->
+    <header class="bg-white border-b border-slate-200">
+      <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded bg-indigo-600 text-white flex items-center justify-center font-bold">P</div>
+          <div>
+            <div class="font-semibold text-slate-900">Préférences & premier planning</div>
+            <div class="text-xs text-slate-500">Étape 3 sur 3 · environ 4 minutes</div>
+          </div>
+        </div>
+        <button class="text-sm text-slate-500 hover:text-slate-900">Sauvegarder & quitter</button>
+      </div>
+      <div class="h-1 bg-slate-100">
+        <div class="h-full bg-indigo-600" style="width: 100%"></div>
+      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 py-8 space-y-6">
+      <!-- Récap configuration -->
+      <section class="bg-white rounded-lg border border-slate-200 p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Récap de ta configuration</h2>
+        <div class="grid grid-cols-3 gap-4">
+          <div class="p-4 rounded bg-slate-50 border border-slate-100">
+            <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Atelier</div>
+            <div class="text-sm font-medium text-slate-900">8 machines · 5 opérateurs</div>
+            <div class="text-xs text-slate-500 mt-1">5 tours CN · 2 fraiseuses · 1 rectif · EN 9100, IATF 16949</div>
+          </div>
+          <div class="p-4 rounded bg-slate-50 border border-slate-100">
+            <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Donneurs d'ordre</div>
+            <div class="text-sm font-medium text-slate-900">4 clients · 3 tiers</div>
+            <div class="text-xs text-slate-500 mt-1">
+              <span class="inline-block w-2 h-2 rounded-full" style="background:#7f1d1d"></span> Safran ·
+              <span class="inline-block w-2 h-2 rounded-full" style="background:#c2410c"></span> Stellantis ·
+              <span class="inline-block w-2 h-2 rounded-full" style="background:#b45309"></span> Bosch ·
+              <span class="inline-block w-2 h-2 rounded-full" style="background:#475569"></span> ProtoLab
+            </div>
+          </div>
+          <div class="p-4 rounded bg-slate-50 border border-slate-100">
+            <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Ordres importés</div>
+            <div class="text-sm font-medium text-slate-900">25 OF · semaine S20</div>
+            <div class="text-xs text-slate-500 mt-1">5 T1 · 14 T2 · 6 T3 · 8 anomalies non-bloquantes restantes</div>
+          </div>
+        </div>
+        <div class="mt-3 text-xs text-slate-500">
+          Tu pourras tout ajuster ensuite depuis l'écran <strong>Réglages</strong>.
+        </div>
+      </section>
+
+      <!-- Soft constraints en NL -->
+      <section class="bg-white rounded-lg border border-slate-200 p-6">
+        <div class="flex items-baseline justify-between mb-2">
+          <h2 class="text-lg font-semibold text-slate-900">Tes préférences en langage naturel</h2>
+          <span class="text-xs text-slate-500">Optionnel — tu peux passer cette étape</span>
+        </div>
+        <p class="text-sm text-slate-600 mb-4">
+          Décris ce qui est <strong>important pour toi</strong> dans le planning. Le système traduit en règles que le solveur prend en compte.
+          Pas besoin de jargon : écris comme tu parlerais à un collègue.
+        </p>
+
+        <textarea
+          id="soft-textarea"
+          class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 text-sm"
+          rows="6"
+          placeholder="Exemple : Je préfère grouper les pièces par matière sur le même tour pour limiter les changements d'outils. Les Safran doivent finir avant jeudi. Jamais de rectifieuse sans certif. La fraiseuse FR-1 fait du bruit, on évite après 18h si possible."
+        >Je préfère grouper les pièces par matière sur le même tour pour limiter les changements d'outils. Les Safran doivent finir avant jeudi. Jamais de rectifieuse sans certif. La fraiseuse FR-1 fait du bruit, on évite après 18h si possible.</textarea>
+
+        <!-- Live parsing : chips -->
+        <div class="mt-4 pt-4 border-t border-slate-100">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-ring"></span>
+            <span>Règles détectées (4)</span>
+            <span class="text-slate-400 normal-case font-normal">— le système propose, tu valides</span>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-start gap-3 p-3 rounded bg-indigo-50 border border-indigo-100">
+              <span class="chip" style="background:#dbeafe;color:#1e40af">prefer_grouping_by_material</span>
+              <div class="flex-1 text-sm">
+                <div class="text-slate-900">Grouper les pièces par matière sur les tours CN</div>
+                <div class="text-xs text-slate-500 mt-0.5">Poids : <strong>moyen (5/10)</strong> — préférence forte mais pas critique</div>
+              </div>
+              <button class="text-slate-400 hover:text-slate-700 text-sm">×</button>
+            </div>
+
+            <div class="flex items-start gap-3 p-3 rounded bg-indigo-50 border border-indigo-100">
+              <span class="chip" style="background:#fee2e2;color:#7f1d1d">deadline_strict</span>
+              <div class="flex-1 text-sm">
+                <div class="text-slate-900">Finir les OF Safran avant jeudi 18h</div>
+                <div class="text-xs text-slate-500 mt-0.5">Poids : <strong>haut (8/10)</strong> — Safran est Tier 1, deadline contractuelle</div>
+              </div>
+              <button class="text-slate-400 hover:text-slate-700 text-sm">×</button>
+            </div>
+
+            <div class="flex items-start gap-3 p-3 rounded bg-rose-50 border border-rose-100">
+              <span class="chip" style="background:#fee2e2;color:#7f1d1d">qualified_operator_constraint</span>
+              <div class="flex-1 text-sm">
+                <div class="text-slate-900">
+                  Rectifieuse RC-1 : opérateur certifié uniquement
+                  <span class="ml-1.5 text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">⚠ contrainte dure, pas soft</span>
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5">Le mot « jamais » indique un impératif → traité comme contrainte dure dans le solveur.</div>
+              </div>
+              <button class="text-slate-400 hover:text-slate-700 text-sm">×</button>
+            </div>
+
+            <div class="flex items-start gap-3 p-3 rounded bg-indigo-50 border border-indigo-100">
+              <span class="chip" style="background:#ffedd5;color:#9a3412">avoid_machine_during_period</span>
+              <div class="flex-1 text-sm">
+                <div class="text-slate-900">Éviter FR-1 après 18h (nuisance sonore)</div>
+                <div class="text-xs text-slate-500 mt-0.5">Poids : <strong>bas (3/10)</strong> — préférence à respecter si possible</div>
+              </div>
+              <button class="text-slate-400 hover:text-slate-700 text-sm">×</button>
+            </div>
+          </div>
+          <button class="mt-3 text-sm text-indigo-600 hover:text-indigo-800 font-medium">+ Ajouter une règle manuellement</button>
+        </div>
+      </section>
+
+      <!-- Premier solve -->
+      <section class="bg-gradient-to-br from-indigo-50 to-white rounded-lg border-2 border-indigo-200 p-6">
+        <div class="flex items-center gap-4">
+          <div class="text-4xl">🚀</div>
+          <div class="flex-1">
+            <h2 class="text-lg font-semibold text-slate-900 mb-1">Tout est prêt</h2>
+            <p class="text-sm text-slate-700">
+              Le système a tout ce qu'il faut pour générer ton premier planning.
+              Cela prend généralement <strong>5 à 30 secondes</strong> sur un atelier de ta taille.
+            </p>
+          </div>
+          <button id="btn-solve" class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 shadow-md whitespace-nowrap">
+            Générer mon premier planning →
+          </button>
+        </div>
+
+        <!-- Solve in progress (caché par défaut) -->
+        <div id="solve-progress" class="hidden mt-5 pt-5 border-t border-indigo-200">
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✓</span><span>Modélisation CP-SAT (1.2s)</span>
+            </div>
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✓</span><span>Première résolution avec budget 10s — solution OPTIMALE trouvée en 4.3s</span>
+            </div>
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✓</span><span>Validation cas-tests : 0 erreur silencieuse</span>
+            </div>
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✓</span><span>Simulation opérationnelle : verdict <strong>ACCEPT</strong> (utilisation 73%, fragmentation 0.12)</span>
+            </div>
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✓</span><span>Score de confiance : <strong>87/100</strong></span>
+            </div>
+          </div>
+          <div class="mt-4 flex gap-3">
+            <a href="gantt.html" class="px-5 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700">
+              Voir le planning généré →
+            </a>
+            <a href="index.html" class="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">
+              Aller au dashboard
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trust message -->
+      <section class="bg-slate-100 border border-slate-200 rounded-lg p-5 text-sm text-slate-700">
+        <div class="font-semibold text-slate-900 mb-1">Et après ?</div>
+        <p class="leading-relaxed">
+          Une fois le planning généré, tu peux le modifier à tout moment via la conversation
+          (« priorité 1 sur Safran », « décale l'OF Bosch »). Le système te repose 5-6 questions contextuelles dans 4 semaines
+          pour affiner les estimations (matrice setup-times, qualifications opérateurs, indisponibilités récurrentes).
+          <br/><br/>
+          <strong class="text-slate-900">Tu gardes toujours le dernier mot.</strong> Aucune modification n'est appliquée sans ta validation explicite.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      document.getElementById("btn-solve").addEventListener("click", () => {
+        document.getElementById("solve-progress").classList.remove("hidden");
+        document.getElementById("btn-solve").disabled = true;
+        document.getElementById("btn-solve").innerHTML = "Résolution en cours...";
+        document.getElementById("btn-solve").classList.add("opacity-50", "cursor-not-allowed");
+        setTimeout(() => {
+          document.getElementById("btn-solve").innerHTML = "✓ Planning généré";
+          document.getElementById("btn-solve").classList.remove("bg-indigo-600", "hover:bg-indigo-700");
+          document.getElementById("btn-solve").classList.add("bg-emerald-600");
+        }, 1500);
+      });
+    </script>
+  </body>
+</html>

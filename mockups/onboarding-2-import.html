@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Import des données — Mécanique Précision SAS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body { font-family: "Inter", system-ui, sans-serif; }
+      .tab-active { border-bottom-color: #4f46e5; color: #4f46e5; font-weight: 600; }
+    </style>
+  </head>
+  <body class="bg-slate-50 min-h-screen">
+    <!-- Top bar -->
+    <header class="bg-white border-b border-slate-200">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded bg-indigo-600 text-white flex items-center justify-center font-bold">P</div>
+          <div>
+            <div class="font-semibold text-slate-900">Import des données ERP</div>
+            <div class="text-xs text-slate-500">Étape 2 sur 3 · environ 5 minutes</div>
+          </div>
+        </div>
+        <button class="text-sm text-slate-500 hover:text-slate-900">Sauvegarder & quitter</button>
+      </div>
+      <div class="h-1 bg-slate-100">
+        <div class="h-full bg-indigo-600" style="width: 66%"></div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
+      <!-- Header avec fichier importé -->
+      <section class="bg-white rounded-lg border border-slate-200 p-5">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl">📊</div>
+          <div class="flex-1">
+            <div class="font-semibold text-slate-900">ofs_semaine_S20.csv</div>
+            <div class="text-sm text-slate-500">47 lignes · importé il y a 23s · format auto-détecté : CSV séparateur « ; » UTF-8</div>
+          </div>
+          <button class="text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded border border-slate-300">
+            Changer de fichier
+          </button>
+        </div>
+
+        <!-- Mapping colonnes auto-détecté -->
+        <div class="mt-4 pt-4 border-t border-slate-100">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">Colonnes détectées (mapping auto)</div>
+          <div class="grid grid-cols-4 gap-2 text-xs">
+            <div class="bg-slate-50 rounded px-2 py-1.5"><span class="text-slate-500">N° OF</span> → <span class="font-mono text-slate-900">order_id</span></div>
+            <div class="bg-slate-50 rounded px-2 py-1.5"><span class="text-slate-500">Référence pièce</span> → <span class="font-mono text-slate-900">part_ref</span></div>
+            <div class="bg-slate-50 rounded px-2 py-1.5"><span class="text-slate-500">Quantité</span> → <span class="font-mono text-slate-900">quantity</span></div>
+            <div class="bg-slate-50 rounded px-2 py-1.5"><span class="text-slate-500">Tps unitaire (min)</span> → <span class="font-mono text-slate-900">duration_min</span></div>
+            <div class="bg-slate-50 rounded px-2 py-1.5"><span class="text-slate-500">Donneur</span> → <span class="font-mono text-slate-900">client</span></div>
+            <div class="bg-slate-50 rounded px-2 py-1.5"><span class="text-slate-500">Échéance</span> → <span class="font-mono text-slate-900">deadline</span></div>
+            <div class="bg-slate-50 rounded px-2 py-1.5"><span class="text-slate-500">Machine cible</span> → <span class="font-mono text-slate-900">machine_ref</span></div>
+            <div class="bg-amber-50 border border-amber-200 rounded px-2 py-1.5"><span class="text-amber-700">Commentaire</span> → <span class="text-amber-800 italic">ignoré (texte libre)</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tabs anomalies par niveau -->
+      <section class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <div class="border-b border-slate-200 px-5 flex items-center gap-1">
+          <button class="px-4 py-3 text-sm border-b-2 border-transparent tab-active flex items-center gap-2">
+            🔴 Niveau 1 — anomalies certaines <span class="bg-rose-100 text-rose-700 px-1.5 rounded text-xs font-semibold">3</span>
+          </button>
+          <button class="px-4 py-3 text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-900 flex items-center gap-2">
+            🟠 Niveau 2 — probables <span class="bg-orange-100 text-orange-700 px-1.5 rounded text-xs font-semibold">8</span>
+          </button>
+          <button class="px-4 py-3 text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-900 flex items-center gap-2">
+            🔵 Niveau 3 — surprenantes <span class="bg-sky-100 text-sky-700 px-1.5 rounded text-xs font-semibold">2</span>
+          </button>
+          <button class="px-4 py-3 text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-900 flex items-center gap-2">
+            ✓ Validées <span class="bg-emerald-100 text-emerald-700 px-1.5 rounded text-xs font-semibold">34</span>
+          </button>
+        </div>
+
+        <!-- Contenu Niveau 1 -->
+        <div class="p-5">
+          <div class="bg-rose-50 border border-rose-200 rounded p-3 mb-4 text-sm flex items-start gap-3">
+            <span class="text-rose-600 text-base">⚠</span>
+            <div class="flex-1 text-rose-900">
+              <strong>3 lignes ont des valeurs impossibles</strong> qui empêcheront le solving.
+              Tu dois corriger ou exclure chacune avant de continuer.
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <!-- Anomalie 1 : durée négative -->
+            <div class="border border-slate-200 rounded-lg overflow-hidden">
+              <div class="bg-slate-50 px-4 py-2 flex items-center justify-between text-xs">
+                <span class="font-mono text-slate-600">ligne 17</span>
+                <span class="text-rose-700 font-medium">Durée négative</span>
+              </div>
+              <div class="p-4 grid grid-cols-[1fr_auto] gap-4">
+                <div>
+                  <div class="text-sm text-slate-700 mb-2">
+                    <strong>OF-2026-0883</strong> · Pignon BV6 · quantité 12 · <span class="bg-rose-100 text-rose-800 px-1.5 rounded font-mono">duration_min = -45</span>
+                  </div>
+                  <div class="text-xs text-slate-500">
+                    Une durée d'opération doit être strictement positive. Probablement une erreur de signe à l'export ERP (devrait être 45 min ?).
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2 items-end">
+                  <button class="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-700 font-medium whitespace-nowrap">
+                    Corriger en 45 min
+                  </button>
+                  <button class="text-xs px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-50 whitespace-nowrap">
+                    Exclure cet OF
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Anomalie 2 : client inconnu -->
+            <div class="border border-slate-200 rounded-lg overflow-hidden">
+              <div class="bg-slate-50 px-4 py-2 flex items-center justify-between text-xs">
+                <span class="font-mono text-slate-600">ligne 28</span>
+                <span class="text-rose-700 font-medium">Donneur d'ordre inconnu</span>
+              </div>
+              <div class="p-4 grid grid-cols-[1fr_auto] gap-4">
+                <div>
+                  <div class="text-sm text-slate-700 mb-2">
+                    <strong>OF-2026-0894</strong> · client = <span class="bg-rose-100 text-rose-800 px-1.5 rounded font-mono">"safrran aero"</span>
+                  </div>
+                  <div class="text-xs text-slate-500">
+                    Pas de client « safrran aero » dans ta liste configurée. Le fuzzy matching propose : <strong>Safran</strong> (similarité 91%).
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2 items-end">
+                  <button class="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-700 font-medium whitespace-nowrap">
+                    ✓ Lier à Safran
+                  </button>
+                  <button class="text-xs px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-50 whitespace-nowrap">
+                    Créer un nouveau client
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Anomalie 3 : machine inconnue -->
+            <div class="border border-slate-200 rounded-lg overflow-hidden">
+              <div class="bg-slate-50 px-4 py-2 flex items-center justify-between text-xs">
+                <span class="font-mono text-slate-600">ligne 41</span>
+                <span class="text-rose-700 font-medium">Machine inconnue</span>
+              </div>
+              <div class="p-4 grid grid-cols-[1fr_auto] gap-4">
+                <div>
+                  <div class="text-sm text-slate-700 mb-2">
+                    <strong>OF-2026-0907</strong> · machine_ref = <span class="bg-rose-100 text-rose-800 px-1.5 rounded font-mono">"CN6"</span>
+                  </div>
+                  <div class="text-xs text-slate-500">
+                    Tu as déclaré 5 tours CN (CN-1 à CN-5), pas de CN-6. Probable typo. Solveur affectera automatiquement à la machine compatible la moins chargée.
+                  </div>
+                </div>
+                <div class="flex flex-col gap-2 items-end">
+                  <button class="text-xs px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-medium whitespace-nowrap">
+                    Laisser le solveur choisir
+                  </button>
+                  <button class="text-xs px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-50 whitespace-nowrap">
+                    Forcer une machine spécifique
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Aperçu Niveau 2 / 3 (collapsed) -->
+      <section class="bg-white rounded-lg border border-slate-200 p-5">
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">À traiter ensuite (sans bloquer le démarrage)</div>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div class="flex items-start gap-3 p-3 rounded bg-orange-50 border border-orange-100">
+            <span class="text-orange-600 text-base">🟠</span>
+            <div>
+              <div class="font-medium text-slate-900 mb-0.5">8 anomalies probables</div>
+              <div class="text-xs text-slate-600">Ex : 3 OF avec deadline = jour de l'import (sûrement urgent ou erreur ?), 5 quantités à 1 (lots prototypes ?). À valider une par une.</div>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-3 rounded bg-sky-50 border border-sky-100">
+            <span class="text-sky-600 text-base">🔵</span>
+            <div>
+              <div class="font-medium text-slate-900 mb-0.5">2 valeurs surprenantes</div>
+              <div class="text-xs text-slate-600">Ex : 1 OF Safran avec durée 240 min (90% des Safran sont entre 30-180 min). Possible mais inhabituel.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Statut + nav -->
+      <div class="flex items-center justify-between bg-white rounded-lg border border-slate-200 p-5">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold">3</div>
+          <div>
+            <div class="font-semibold text-slate-900">3 corrections obligatoires avant de continuer</div>
+            <div class="text-xs text-slate-500">Tu pourras revenir aux 8+2 anomalies non bloquantes plus tard depuis Données &gt; Qualité.</div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">← Précédent</button>
+          <button class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled title="Corrige les 3 anomalies bloquantes">
+            Continuer →
+          </button>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

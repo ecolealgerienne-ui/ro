@@ -21,7 +21,17 @@ Ou simplement double-cliquer sur `index.html` dans un navigateur.
 Aucune build, aucune dépendance npm. Tailwind est chargé via CDN, les données
 sont en JS dans `data.js`.
 
-## Les 5 écrans
+## Les 8 écrans
+
+### Onboarding (3 écrans — J0 install / calibration)
+
+| Fichier | Écran | Ce qu'il démontre |
+|---------|-------|-------------------|
+| `onboarding-1-atelier.html` | **Configuration atelier** | Questionnaire arborescent visible (15 essentielles + 3 contextuelles selon réponses), aperçu du parcours à droite, message « onboarding progressif » (pas tout au J0). Question pilote : setup-dependent. |
+| `onboarding-2-import.html` | **Import CSV ERP** | Upload + auto-détection colonnes, 3 niveaux d'anomalies (3 certaines bloquantes / 8 probables / 2 surprenantes), fuzzy matching client, fix in-place ou exclusion. |
+| `onboarding-3-first-plan.html` | **Préférences NL & 1er solve** | Récap config, textarea soft constraints en langage naturel, **live parsing** en chips typées (4 règles détectées dont 1 contrainte dure repérée par le mot « jamais »), bouton « générer mon premier planning » avec trace circuit breaker → simulation → score. |
+
+### Quotidien chef d'atelier (5 écrans — usage J+1 et après)
 
 | Fichier | Écran | Ce qu'il démontre |
 |---------|-------|-------------------|
@@ -66,29 +76,44 @@ Tirés de `specs-fonctionnelles-v3.md` :
 
 ## Ce que le mockup ne couvre PAS (volontairement)
 
-- **Onboarding / questionnaire** (5.2-5.3) — séparé, à mocker en sprint 2
-  si retours DP positifs sur le core.
-- **Import Data Quality** (5.7) — flow upload CSV, peut être un mockup
-  séparé d'un seul écran.
+- **Mini-questionnaires contextuels** post-J0 (les 5-6 questions qui
+  reviennent à 4 semaines avec données réelles) — implicite dans le
+  message d'onboarding-1, à mocker si retours DP demandent un démo.
 - **Mobile / PWA opérateur** (Phase 6) — hors scope de ce mockup chef
   d'atelier.
 - **Multi-tenant / auth** — non pertinent pour valider l'UX décisionnelle.
+- **Vue famille / clustering visuel** des pièces (« voici les 8 familles
+  détectées dans tes 200 pièces ») — pertinent pour Phase 1.7 démo,
+  ajouter si besoin.
 
 ## Comment l'utiliser avec un DP
 
-1. **Avant la rencontre** : ouvre les 5 écrans dans l'ordre, vérifie que
-   la story tient (le narratif ci-dessous).
-2. **Pendant la rencontre** :
-   - Démarre sur `index.html` : « voici ce que tu vois lundi matin »
-   - Click « Replanifier » → emmène sur conversation
-   - « Priorité 1 sur Safran » → montre la carte de validation
-   - Va sur `gantt.html`, montre la zone freeze, click un OF
-   - Va sur `infeasibility.html` : « si tu ajoutes 12 OF Stellantis et que
-     CN-3 a une maintenance vendredi, voici ce qui se passe »
-   - Termine sur `versioning.html` : « tout est tracé, rollback possible »
-3. **Après** : récolte 3 questions par écran (« est-ce que tu cliquerais
-   ici ? », « est-ce que ce truc t'aiderait ? », « qu'est-ce qui manque ? »).
-   Itère sur les fichiers HTML.
+Deux parcours selon le moment de la conversation :
+
+### Parcours 1 — « Comment je m'installe ? » (onboarding)
+
+Réponse à la question critique sur le pricing 5-12K€ d'install (specs V3 §1).
+1. `onboarding-1-atelier.html` : « 15 questions essentielles, le reste vient
+   sur 4-6 semaines avec tes données réelles »
+2. `onboarding-2-import.html` : « tu pousses ton export ERP, le système
+   trouve 13 trucs bizarres, on les corrige ensemble en 5 min »
+3. `onboarding-3-first-plan.html` : « tu décris en français ce qui te tient
+   à cœur, le système traduit en règles » + premier solve avec trace trust layer
+4. Enchaîner sur `gantt.html` (« voici ton premier planning »)
+
+### Parcours 2 — « C'est quoi mon quotidien ? » (5 écrans déjà existants)
+
+1. `index.html` : « voici ce que tu vois lundi matin »
+2. Click « Replanifier » → emmène sur conversation
+3. `conversation.html` : « priorité 1 sur Safran » → montre la carte de validation
+4. `gantt.html` : zone freeze, click un OF
+5. `infeasibility.html` : « si tu ajoutes 12 OF Stellantis et CN-3 maintenance
+   vendredi, voici ce qui se passe »
+6. `versioning.html` : « tout est tracé, rollback possible »
+
+**Après la session DP** : récolte 3 questions par écran (« est-ce que tu
+cliquerais ici ? », « est-ce que ce truc t'aiderait ? », « qu'est-ce qui
+manque ? »). Itère sur les fichiers HTML.
 
 ## Narratif à dérouler
 
