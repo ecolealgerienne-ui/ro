@@ -123,7 +123,12 @@ def translate_tardiness_per_job(
     total = model.new_int_var(0, horizon * len(tardy_vars), f"{label}_total")
     model.add(total == sum(tardy_vars))
 
-    return SoftPenaltyVar(label=label, weight=_to_int_weight(constraint.weight_hint), var=total)
+    return SoftPenaltyVar(
+        label=label,
+        weight=_to_int_weight(constraint.weight_hint),
+        var=total,
+        expected_max=horizon * len(tardy_vars),  # 1.3 — tardive max = horizon par job
+    )
 
 
 # ---------- Translator 2 : avoid_machine_during_period ----------
@@ -194,7 +199,12 @@ def translate_avoid_machine_during_period(
     total = model.new_int_var(0, len(overlap_flags), f"{label}_total")
     model.add(total == sum(overlap_flags))
 
-    return SoftPenaltyVar(label=label, weight=_to_int_weight(constraint.weight_hint), var=total)
+    return SoftPenaltyVar(
+        label=label,
+        weight=_to_int_weight(constraint.weight_hint),
+        var=total,
+        expected_max=len(overlap_flags),  # 1.3 — au pire toutes les ops chevauchent
+    )
 
 
 # ---------- Translator 3 : encourage_early_completion ----------
@@ -224,7 +234,12 @@ def translate_encourage_early_completion(
     total = model.new_int_var(0, horizon * len(last_ends), f"{label}_total")
     model.add(total == sum(last_ends.values()))
 
-    return SoftPenaltyVar(label=label, weight=_to_int_weight(constraint.weight_hint), var=total)
+    return SoftPenaltyVar(
+        label=label,
+        weight=_to_int_weight(constraint.weight_hint),
+        var=total,
+        expected_max=horizon * len(last_ends),  # 1.3 — somme max si chacun finit a horizon
+    )
 
 
 # ---------- Translator 4 : limit_ops_per_day_on_machine ----------
@@ -302,7 +317,12 @@ def translate_limit_ops_per_day_on_machine(
     total = model.new_int_var(0, n_ops * len(day_offsets), f"{label}_total")
     model.add(total == sum(excess_terms))
     return SoftPenaltyVar(
-        label=label, weight=_to_int_weight(constraint.weight_hint), var=total
+        label=label,
+        weight=_to_int_weight(constraint.weight_hint),
+        var=total,
+        # 1.3 — au pire toutes les ops dans tous les jours = n_ops × n_jours d'excess.
+        # Borne lache mais coherente : meme si peu probable, evite la division par 0.
+        expected_max=max(1, n_ops * len(day_offsets)),
     )
 
 
@@ -352,7 +372,11 @@ def translate_prefer_grouping_by_family(
     total = model.new_int_var(0, horizon * len(spreads), f"{label}_total")
     model.add(total == sum(spreads))
     return SoftPenaltyVar(
-        label=label, weight=_to_int_weight(constraint.weight_hint), var=total
+        label=label,
+        weight=_to_int_weight(constraint.weight_hint),
+        var=total,
+        # 1.3 — chaque spread <= horizon, somme bornee par horizon × n_groupes.
+        expected_max=horizon * len(spreads),
     )
 
 
@@ -398,9 +422,7 @@ def translate_prefer_grouping_by_client(
         if client is None:
             continue
         for op in job.operations:
-            groups.setdefault((op.machine_id, client), []).append(
-                (job.job_id, op.sequence_idx)
-            )
+            groups.setdefault((op.machine_id, client), []).append((job.job_id, op.sequence_idx))
 
     spreads: list[Any] = []
     for (machine_id, client), op_keys in groups.items():
@@ -429,7 +451,11 @@ def translate_prefer_grouping_by_client(
     total = model.new_int_var(0, horizon * len(spreads), f"{label}_total")
     model.add(total == sum(spreads))
     return SoftPenaltyVar(
-        label=label, weight=_to_int_weight(constraint.weight_hint), var=total
+        label=label,
+        weight=_to_int_weight(constraint.weight_hint),
+        var=total,
+        # 1.3 — meme borne que la version family : horizon × n_groupes.
+        expected_max=horizon * len(spreads),
     )
 
 

@@ -116,15 +116,75 @@ class CompositeObjectiveSpec(BaseModel):
 
 
 def _maybe_penalty(
-    var: Any | None, *, label: str, priority: ObjectivePriority
+    var: Any | None,
+    *,
+    label: str,
+    priority: ObjectivePriority,
+    expected_max: int | None = None,
 ) -> SoftPenaltyVar | None:
-    """Construit un SoftPenaltyVar si la priorite est > DISABLED et la var existe."""
+    """Construit un SoftPenaltyVar si la priorite est > DISABLED et la var existe.
+
+    `expected_max` (Phase 1.3) : ordre de grandeur attendu de `var` au pire cas,
+    sert a la calibration dynamique pour eviter qu'une penalite a grosse echelle
+    n'ecrase les autres.
+    """
     if var is None or priority is ObjectivePriority.DISABLED:
         return None
     weight = PRIORITY_TO_WEIGHT[priority]
     if weight < 1:
         return None
-    return SoftPenaltyVar(label=label, weight=weight, var=var)
+    return SoftPenaltyVar(label=label, weight=weight, var=var, expected_max=expected_max)
+
+
+# ---------- Calibration dynamique des poids (Phase 1.3) ----------
+
+# Cible d'echelle apres calibration : chaque penalite calibree contribue
+# environ `CALIBRATION_TARGET` au pire cas, AVANT amplification par sa priorite.
+# Ainsi, deux penalites de meme priorite contribuent dans le meme ordre de
+# grandeur, quelle que soit leur echelle brute (minutes vs counts vs ratios).
+CALIBRATION_TARGET: Final[int] = 1000
+
+
+def calibrate_penalty_weights(
+    penalties: Sequence[SoftPenaltyVar],
+    *,
+    target: int = CALIBRATION_TARGET,
+) -> list[SoftPenaltyVar]:
+    """Re-ponderation des SoftPenaltyVar pour eviter qu'une penalite n'ecrase les autres.
+
+    Pour chaque penalite avec `expected_max` defini, le nouveau poids est :
+
+        new_weight = max(1, round(weight * target / expected_max))
+
+    Cela rend les penalites comparables : une penalite "tardiness" en minutes
+    (scale 1e5) et une penalite "count overlaps" (scale 1e1) contribuent
+    similairement au pire cas avant d'etre amplifiees par leurs priorites.
+
+    Les penalites sans `expected_max` sont laissees inchangees (le translator
+    n'a pas annote, on ne peut pas calibrer).
+
+    Args:
+        penalties: liste de SoftPenaltyVar produites par les translators.
+        target: scale cible apres calibration. Defaut 1000.
+
+    Returns:
+        Nouvelle liste avec poids ajustes. Liste originale non mutee.
+    """
+    if target < 1:
+        raise ValueError(f"target doit etre >= 1, recu {target}")
+    out: list[SoftPenaltyVar] = []
+    for sp in penalties:
+        if sp.expected_max is None or sp.expected_max <= 0:
+            out.append(sp)
+            continue
+        new_weight = max(1, round(sp.weight * target / sp.expected_max))
+        # On preserve `expected_max` post-calibration pour traceabilite.
+        out.append(
+            SoftPenaltyVar(
+                label=sp.label, weight=new_weight, var=sp.var, expected_max=sp.expected_max
+            )
+        )
+    return out
 
 
 def build_composite_soft_penalties(
@@ -132,6 +192,8 @@ def build_composite_soft_penalties(
     *,
     reference_schedule: Mapping[tuple[int, int], int] | None = None,
     vertical_extras: Callable[..., Sequence[SoftPenaltyVar]] | None = None,
+    calibrate: bool = True,
+    calibration_target: int = CALIBRATION_TARGET,
 ) -> Callable[..., Sequence[SoftPenaltyVar]]:
     """Construit un `SoftPenaltyBuilder` configure selon la spec composite.
 
@@ -144,6 +206,10 @@ def build_composite_soft_penalties(
             specifiques a la verticale (ex: le dispatcher de soft constraints
             NL-driven). Signature : `(*, model, instance, op_vars, horizon) ->
             Sequence[SoftPenaltyVar]`.
+        calibrate: applique `calibrate_penalty_weights` sur les penalites
+            collectees avant retour. Defaut True (Phase 1.3). False = poids
+            bruts (comportement Phase 1.2).
+        calibration_target: scale cible pour la calibration. Defaut 1000.
 
     Returns:
         Une fonction `(*, model, instance, op_vars, horizon) -> list[SoftPenaltyVar]`
@@ -159,16 +225,23 @@ def build_composite_soft_penalties(
     ) -> list[SoftPenaltyVar]:
         out: list[SoftPenaltyVar] = []
 
-        # Tardiness aggregate
+        # Tardiness aggregate — expected_max = horizon * n_jobs_with_deadline
         if spec.tardiness is not ObjectivePriority.DISABLED:
             tardy = aggregate_tardiness_var(
                 model, instance=instance, op_vars=op_vars, horizon=horizon
             )
-            sp = _maybe_penalty(tardy, label="composite_tardiness", priority=spec.tardiness)
+            n_with_deadline = sum(1 for j in instance.jobs if j.deadline is not None)
+            expected_max = max(1, horizon * n_with_deadline)
+            sp = _maybe_penalty(
+                tardy,
+                label="composite_tardiness",
+                priority=spec.tardiness,
+                expected_max=expected_max,
+            )
             if sp is not None:
                 out.append(sp)
 
-        # Stability vs reference
+        # Stability vs reference — expected_max = horizon * n_ops_in_reference
         if spec.stability is not ObjectivePriority.DISABLED and reference_schedule is not None:
             stab = schedule_stability_var(
                 model,
@@ -176,19 +249,27 @@ def build_composite_soft_penalties(
                 horizon=horizon,
                 reference_schedule=reference_schedule,
             )
-            sp = _maybe_penalty(stab, label="composite_stability", priority=spec.stability)
+            expected_max = max(1, horizon * len(reference_schedule))
+            sp = _maybe_penalty(
+                stab,
+                label="composite_stability",
+                priority=spec.stability,
+                expected_max=expected_max,
+            )
             if sp is not None:
                 out.append(sp)
 
-        # Early completion (sum of last ends)
+        # Early completion — expected_max = horizon * n_jobs (somme des fins)
         if spec.early_completion is not ObjectivePriority.DISABLED:
             comp = aggregate_completion_var(
                 model, instance=instance, op_vars=op_vars, horizon=horizon
             )
+            expected_max = max(1, horizon * len(instance.jobs))
             sp = _maybe_penalty(
                 comp,
                 label="composite_early_completion",
                 priority=spec.early_completion,
+                expected_max=expected_max,
             )
             if sp is not None:
                 out.append(sp)
@@ -200,14 +281,21 @@ def build_composite_soft_penalties(
             )
             out.extend(extras)
 
+        # Calibration : re-pondere selon les expected_max annotes par les
+        # translators. Les penalites sans expected_max sont laissees inchangees.
+        if calibrate:
+            out = calibrate_penalty_weights(out, target=calibration_target)
+
         return out
 
     return builder
 
 
 __all__ = [
+    "CALIBRATION_TARGET",
     "PRIORITY_TO_WEIGHT",
     "CompositeObjectiveSpec",
     "ObjectivePriority",
     "build_composite_soft_penalties",
+    "calibrate_penalty_weights",
 ]

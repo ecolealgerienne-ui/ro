@@ -4,7 +4,7 @@
 > Documente les résultats concrets, décisions techniques et métriques de chaque étape.
 > Mis à jour à chaque étape stabilisée.
 
-**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.2 ✅, 1.6 ✅ (6 translators / 4 idiomes), 1.1.opt + 1.3-1.5 + 1.7-1.8 en attente**
+**Snapshot : 2026-04-30 — Phase 1.1 ✅, 1.2 ✅, 1.3 ✅, 1.6 ✅ (6 translators / 4 idiomes), 1.1.opt + 1.4-1.5 + 1.7-1.8 en attente**
 
 ---
 
@@ -223,6 +223,63 @@ result = solver.solve(instance, soft_penalty_builder=builder, makespan_weight=sp
 
 ---
 
+## Étape 1.3 — Calibration dynamique des poids ✅ stabilisée 2026-04-30
+
+**Objectif** : empêcher qu'une pénalité d'échelle naturellement grande
+(tardiness en minutes ~ horizon × n_jobs) n'écrase une pénalité d'échelle plus
+petite (count d'overlaps ~ n_ops) lorsqu'elles sont combinées dans la même
+fonction objectif avec des priorités similaires.
+
+### Verticalité préservée
+
+L'architecture respecte le pattern engine/vertical :
+
+- **Engine** (`src/core/`) fournit le **mécanisme** :
+  - `SoftPenaltyVar.expected_max: int | None` — annotation optionnelle,
+    backward-compatible.
+  - `calibrate_penalty_weights(penalties, target=1000)` — formule de rescale.
+  - Pour les 4 objectifs universels (tardiness, stability, completion), engine
+    calcule `expected_max` depuis `horizon × n_jobs` (proxy universel).
+- **Verticale** (`src/verticals/mech_workshop/soft_translators.py`) annote
+  chacun de ses 6 translators avec un `expected_max` adapté à son idiome :
+  - `tardiness_per_job` → `horizon × n_jobs_with_deadline`
+  - `avoid_machine_during_period` → `len(overlap_flags)` (n_ops sur la machine)
+  - `encourage_early_completion` → `horizon × n_jobs`
+  - `limit_ops_per_day_on_machine` → `n_ops × n_jours`
+  - `prefer_grouping_by_family/client` → `horizon × n_groupes`
+
+### Livrables
+
+- Extension du dataclass `SoftPenaltyVar` (frozen) avec `expected_max`.
+- `calibrate_penalty_weights()` engine helper.
+- `build_composite_soft_penalties(calibrate=True)` par défaut.
+- 6 translators méca annotés.
+- 16 tests dont `test_calibration_prevents_dominance_of_large_scale_penalty`
+  (critère de sortie 1.3) et `test_calibration_default_is_on`.
+
+### Critère de sortie atteint
+
+Test discriminant : 2 pénalités de même priorité MEDIUM (poids brut 5) avec
+expected_max très différents (400 vs 4). Sans calibration : poids identiques
+mais valeurs ~100× différentes → la grande écrase la petite. Avec calibration :
+
+| Pénalité | weight raw | expected_max | weight calibré | contribution max calibrée |
+|---|---:|---:|---:|---:|
+| tardiness | 5 | 400 | 12-13 | ~5000 |
+| fake low | 5 | 4 | 1250 | ~5000 |
+
+→ Les deux contribuent dans le même ordre de grandeur (≈5000), aucune n'écrase
+l'autre.
+
+### Compatibilité
+
+- `expected_max=None` (default) → pas de calibration → comportement Phase 1.2
+  préservé.
+- 2 tests Phase 1.2 ajustés pour passer `calibrate=False` explicite quand ils
+  vérifient les poids bruts.
+
+---
+
 ## Étape 1.6 — Soft constraints en pénalités (côté solver) ✅ stabilisée 2026-04-30
 
 **Objectif** : pendant côté CP-SAT du module 3.6 (NL → JSON typé). Traduit les
@@ -302,13 +359,11 @@ basse, le scaffolding existant les accueille sans rework).
 
 1. **Phase 1.1.opt** — Migration setup pattern — **toujours prioritaire** avant
    scale réel (bottleneck identifié en 1.1d)
-2. **Phase 1.3** — Calibration dynamique des poids (auto-scale selon
-   caractéristiques d'instance pour éviter qu'un objectif n'écrase les autres)
-3. **Phase 1.4** — Replanification incrémentale (freeze partiel + solution hint)
-   — base déjà posée avec `schedule_stability_var` en 1.2
-4. **Phase 1.5** — Stabilité pondérée par criticité Tier 1/2/3
-5. **Phase 1.7** — Clustering automatique des familles de pièces
-6. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
+2. **Phase 1.4** — Replanification incrémentale (freeze partiel + solution hint)
+   — base déjà posée avec `schedule_stability_var` en 1.2 + calibration en 1.3
+3. **Phase 1.5** — Stabilité pondérée par criticité Tier 1/2/3
+4. **Phase 1.7** — Clustering automatique des familles de pièces
+5. **Phase 1.8** — Extraction MIS approximée + génération actions correctives
 
 ---
 

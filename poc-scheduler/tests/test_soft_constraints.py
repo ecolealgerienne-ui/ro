@@ -793,13 +793,9 @@ def test_solver_5_hard_5_soft_cohabitate() -> None:
         n_operators=2,
         transition_matrix=[[0, 5], [5, 0]],
         shared_resources=[
-            SharedResourceSpec(
-                resource_name="aspiration", machine_ids=[0, 1], max_concurrent=1
-            )
+            SharedResourceSpec(resource_name="aspiration", machine_ids=[0, 1], max_concurrent=1)
         ],
-        machine_unavailability=[
-            MachineUnavailabilitySpec(machine_id=0, periods=[(0, 1)])
-        ],
+        machine_unavailability=[MachineUnavailabilitySpec(machine_id=0, periods=[(0, 1)])],
     )
 
     def builder(*, model, instance, op_vars, horizon):

@@ -263,7 +263,9 @@ def test_build_composite_with_tardiness_and_completion() -> None:
         stability=ObjectivePriority.DISABLED,
         early_completion=ObjectivePriority.MEDIUM,
     )
-    builder = build_composite_soft_penalties(spec)
+    # calibrate=False pour tester les poids bruts derives des priorites (Phase 1.2).
+    # Avec calibrate=True (defaut, Phase 1.3), les poids seraient rescales.
+    builder = build_composite_soft_penalties(spec, calibrate=False)
     instance = WorkshopInstance(
         name="x",
         jobs=[
@@ -296,7 +298,8 @@ def test_build_composite_with_stability_and_reference() -> None:
         stability=ObjectivePriority.HIGH,
         early_completion=ObjectivePriority.DISABLED,
     )
-    builder = build_composite_soft_penalties(spec, reference_schedule={(0, 0): 10})
+    # calibrate=False pour tester le poids brut HIGH=25 (Phase 1.2).
+    builder = build_composite_soft_penalties(spec, reference_schedule={(0, 0): 10}, calibrate=False)
     instance = WorkshopInstance(
         name="x",
         jobs=[

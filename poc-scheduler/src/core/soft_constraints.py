@@ -47,11 +47,17 @@ class SoftPenaltyVar:
         var     : `cp_model.IntVar` representant la penalite (>= 0). La
                   semantique exacte (compte, overlap, lateness, etc.) depend
                   du translator metier qui l'a produite.
+        expected_max : ordre de grandeur attendu de `var` au pire cas (Phase 1.3).
+                  Sert a la calibration dynamique : `calibrate_penalty_weights`
+                  re-pondere les penalites pour que toutes contribuent dans le
+                  meme ordre de grandeur avant que les priorites n'amplifient.
+                  None = pas de calibration appliquee (comportement legacy).
     """
 
     label: str
     weight: int
     var: Any  # cp_model.IntVar — Any car SDK CP-SAT non typé
+    expected_max: int | None = None
 
 
 class WeightedObjectivePattern(Pattern):
