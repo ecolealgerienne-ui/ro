@@ -81,10 +81,18 @@ Phase 5.2 — dict plat) en `WorkshopSpec` Pydantic strict.
 **Tests** : 3 tests avec `FakeLLMProvider` (parsing valide, rendering du prompt,
 rejet d'inputs manquants).
 
-**Reste à faire** : validation empirique avec **10 cas types réels** (PME aero, auto,
-médical, ICP variées). Itération de prompt nécessaire.
+**Validation empirique** :
+- Trial 1/1 réel via `agent_io.py` + claude.ai sur input PME aero (EN9100,
+  fraiseuse 5 axes, alu 7075 / titane TA6V / inox 316L) : **✓ Validé**.
+- Toutes les estimations cohérentes (milieu de fourchette + notes explicatives),
+  enums fermés respectés, mappings non-évidents tracés (EN9100 → aero,
+  fraiseuse 5 axes → fraiseuse).
+- Voir `experiments/agents-trial/results.md` pour le détail.
 
-**Statut** : 🔵 en test.
+**Reste à faire** : reproduire sur 4-5 profils variés (auto, médical, hors aero)
+avant ✅.
+
+**Statut** : 🔵 en test, **première validation positive**.
 
 ---
 
@@ -168,10 +176,22 @@ placement OF ou d'une infaisabilité, sans jargon solveur.
 
 **Tests** : 4 tests dont rejet de `kind` invalide et de listes trop longues.
 
-**Reste à faire** : validation manuelle sur **30 cas types** (placements variés +
-infaisabilités variées), itération de prompt.
+**Validation empirique** :
+- Trial 1 — `placement` : ✗ **ÉCHEC validation Pydantic** (Claude a omis `kind`).
+- Itération immédiate du prompt v1 : règle 5 renforcée explicitement (« `kind`
+  est **obligatoire**, ne pas omettre »), mention en tête de Tâche signalant
+  qu'une réponse sans `kind` sera rejetée.
+- Trial 2 — `infeasibility` : ✓ Validé. Summary clair, 3 reasons concrètes,
+  3 actions actionnables, **0 jargon solveur** (interdiction respectée).
 
-**Statut** : 🔵 en test.
+**Signal positif** : la `ValidationError` Pydantic a attrapé le bug (`kind`
+manquant) qui serait passé silencieusement sans le schéma strict. Validation
+de la doctrine "Pydantic strict + validators métier" en conditions réelles.
+
+**Reste à faire** : re-tester `placement` avec le prompt durci, puis reproduire
+sur 5+ trials par mode.
+
+**Statut** : 🔵 en test, **prompt v1 durci suite au trial 1**.
 
 ---
 
@@ -197,10 +217,19 @@ jamais l'appliquer directement** (validation humaine obligatoire).
 **Tests** : 4 tests dont path clarification, rejet d'incohérences, rejet de plan
 vide sans clarification.
 
-**Reste à faire** : validation manuelle sur **10 modifications types** avec
-validation humaine.
+**Validation empirique** :
+- Trial 1/1 sur cas piège conditionnel (« priorité 1 sur Safran ET bascule sur
+  TOUR-02 si TOUR-01 trop chargé ») : **✓ Validé**, 2 actions distinctes
+  (set_order_priority + reassign_operation_machine), `condition_applied` tracée
+  dans `params` (87 % vs 42 %), `user_request_normalized` reformulée proprement.
+- **Comportement notable** : Claude a interprété la condition floue plutôt que
+  demander clarification (`needs_clarification = false`). Défendable vu l'écart
+  87/42, mais à observer sur cas border-line.
 
-**Statut** : 🔵 en test.
+**Reste à faire** : reproduire sur 4-5 demandes incluant un cas
+"condition non tranchable" (par exemple TOUR-01 à 51 % vs TOUR-02 à 49 %).
+
+**Statut** : 🔵 en test, **première validation positive avec observation**.
 
 ---
 

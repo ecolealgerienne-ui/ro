@@ -19,7 +19,9 @@ pourquoi le solveur n'a pas trouvé de planning)
 
 ## Tâche
 
-Produis un objet JSON respectant exactement ce schéma :
+Produis un objet JSON respectant exactement ce schéma. **Les 4 champs sont
+obligatoires, y compris `kind`. Une réponse sans `kind` sera rejetée par
+le validateur.**
 
 ```json
 {
@@ -45,5 +47,7 @@ Produis un objet JSON respectant exactement ce schéma :
    ne permet pas d'inférer une raison, tronquer la liste.
 4. **`actions_suggested` peut être vide** si on est sur un placement réussi.
    Pour `infeasibility`, donner au moins 1 action si possible.
-5. **`kind` doit être identique à celui du contexte**. Pas d'invention.
+5. **`kind` est obligatoire et doit être copié exactement depuis « Type
+   d'explication demandée » ci-dessus** (`placement` ou `infeasibility`).
+   Ne pas omettre. Ne pas inventer une autre valeur.
 6. **Sortie** : exclusivement le JSON dans un bloc ```` ```json ... ``` ````.
