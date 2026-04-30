@@ -15,10 +15,10 @@ Design :
 Garantie : aucune boucle infinie. Le nombre de tentatives est borne par
 `len(time_budgets_s)`.
 
-L'extracteur MIS reel sera livre en Phase 1.8 (`extraction MIS approximee +
-generation actions correctives`). Ici on accepte n'importe quel callable
-respectant la signature `(WorkshopInstance) -> str`. Defaut : un stub qui
-documente l'absence d'extracteur.
+L'extracteur MIS par defaut est `src.core.mis.default_mis_extractor` (Phase 1.8 :
+deletion-based singleton MIS sur jobs / unavailability / shared_resources). Le
+caller peut fournir n'importe quel callable respectant la signature
+`(WorkshopInstance) -> str` (ex : un agent LLM qui enrichit le rendering NL).
 """
 
 from __future__ import annotations
@@ -29,6 +29,7 @@ from typing import Final
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.core.mis import default_mis_extractor
 from src.core.models import WorkshopInstance
 from src.core.solver import JSSPSolver, SolverResult, SolverStatus
 
@@ -82,20 +83,11 @@ class CircuitBreakerResult(BaseModel):
 DEFAULT_TIME_BUDGETS_S: Final[tuple[float, ...]] = (10.0, 30.0, 60.0)
 
 
-def _default_mis_extractor(_instance: WorkshopInstance) -> str:
-    """Stub par defaut : pas d'extraction MIS. Phase 1.8 fournira la vraie."""
-    return (
-        "Extraction MIS non disponible (extracteur par defaut). "
-        "Phase 1.8 livrera `extract_mis_approximate(instance)`. "
-        "En attendant, fournir un extracteur custom via `mis_extractor=`."
-    )
-
-
 def solve_with_circuit_breaker(
     instance: WorkshopInstance,
     *,
     time_budgets_s: Sequence[float] = DEFAULT_TIME_BUDGETS_S,
-    mis_extractor: Callable[[WorkshopInstance], str] = _default_mis_extractor,
+    mis_extractor: Callable[[WorkshopInstance], str] = default_mis_extractor,
     num_workers: int = 8,
 ) -> CircuitBreakerResult:
     """Lance le solveur avec une suite finie de tentatives, bascule MIS au besoin.

@@ -76,7 +76,8 @@ poc-scheduler/
 │   │   ├── soft_constraints.py # WeightedObjectivePattern + SoftPenaltyVar (1.6, 1.3, 1.5)
 │   │   ├── objectives.py       # CompositeObjectiveSpec + priorités nommées (1.2)
 │   │   ├── replanification.py  # FreezeSpec + SolutionHintSpec + derive helper (1.4)
-│   │   └── clustering.py       # agglomerative_cluster engine generic (1.7)
+│   │   ├── clustering.py       # agglomerative_cluster engine generic (1.7)
+│   │   └── mis.py              # extract_mis_approximate + CorrectiveAction (1.8)
 │   ├── preflight/              # Pre-flight CSV générique (vertical-agnostic)
 │   ├── loaders/                # Loaders génériques (Taillard, benchmark runner)
 │   ├── llm/                    # Couche LLM générique (provider, parsing)
@@ -127,6 +128,6 @@ narratifs (`../phase-{0,1,2}-report.md`).
 **Étape courante : Phase 2 — Trust layer technique.**
 
 - ✅ Phase 0 stabilisée (Gate 0 ✓ : OR-Tools validé sur Taillard)
-- 🟡 Phase 1 en cours (1.1 ✓, 1.2 ✓ composite, 1.3 ✓ calibration, 1.4 ✓ replanif, 1.5 ✓ tier, 1.6 ✓ soft constraints, **1.7 ✓** clustering ; 1.1.opt et 1.8 restantes)
+- 🟡 Phase 1 en cours (1.1 ✓, 1.2 ✓ composite, 1.3 ✓ calibration, 1.4 ✓ replanif, 1.5 ✓ tier, 1.6 ✓ soft constraints, 1.7 ✓ clustering, **1.8 ✓** MIS ; seule 1.1.opt restante)
 - ✅ **Phase 2 stabilisée + Gate 1 ✓** (trust layer technique livrée, 0 erreur silencieuse / 20 ateliers tests)
 - ✅ **Phase 3 stabilisée** (3.3-3.8 livrés, 13 trials réels OK, prompts validés ; 3.1/3.2 MCP abandonnés)

@@ -103,7 +103,8 @@ def test_infeasible_detected_and_stops_early() -> None:
     assert out.n_attempts == 1, "Aucun retry attendu apres preuve d'infaisabilite"
     assert out.final_result.status is SolverStatus.INFEASIBLE
     assert out.mis_summary is not None
-    assert "MIS" in out.mis_summary or "Phase 1.8" in out.mis_summary
+    # default_mis_extractor (Phase 1.8) produit un summary commencant par "INFEASIBLE".
+    assert "INFEASIBLE" in out.mis_summary
 
 
 def test_infeasible_calls_custom_mis_extractor() -> None:
