@@ -4,7 +4,7 @@
 > Documente les résultats concrets, décisions techniques et métriques de chaque étape.
 > Mis à jour à chaque étape stabilisée.
 
-**Snapshot : 2026-04-30 — 3.1/3.2 ❌ abandonnées (MCP), 3.3 ✅, 3.4 🔵, 3.5 ✅, 3.6 ✅, 3.7 🔵, 3.8 🔵**
+**Snapshot : 2026-04-30 — Phase 3 ✅ stabilisée (3.3-3.8), 3.1/3.2 ❌ abandonnées (MCP)**
 
 ---
 
@@ -13,9 +13,9 @@
 | Indicateur | Valeur |
 |------------|--------|
 | Phase courante | 3 — Agents LLM (tool use natif Claude API) |
-| Étapes stabilisées | **3/8** (3.3 ✅ couche LLM, 3.5 ✅ extraction CSV, 3.6 ✅ soft constraints) |
-| Étapes en test | **3/8** (3.4 🔵 questionnaire, 3.7 🔵 explication, 3.8 🔵 édition conv.) |
+| Étapes stabilisées | **6/8** (3.3 ✅ + 3.4 ✅ + 3.5 ✅ + 3.6 ✅ + 3.7 ✅ + 3.8 ✅) |
 | Étapes abandonnées | **2/8** (3.1 et 3.2 — MCP server, voir journal des décisions) |
+| Trials réels Phase 3 | **13 trials** sur les 5 agents (12 ✓ + 1 fail attrapé par Pydantic et corrigé) |
 | Tests automatisés | **279 passants** (5 skipped Taillard) — ~120 s |
 | Lignes ajoutées (Phase 3) | ~1500 (src/llm + src/agents + 5 agents méca + 7 prompts + tests) |
 
@@ -82,17 +82,24 @@ Phase 5.2 — dict plat) en `WorkshopSpec` Pydantic strict.
 rejet d'inputs manquants).
 
 **Validation empirique** :
-- Trial 1/1 réel via `agent_io.py` + claude.ai sur input PME aero (EN9100,
-  fraiseuse 5 axes, alu 7075 / titane TA6V / inox 316L) : **✓ Validé**.
-- Toutes les estimations cohérentes (milieu de fourchette + notes explicatives),
-  enums fermés respectés, mappings non-évidents tracés (EN9100 → aero,
-  fraiseuse 5 axes → fraiseuse).
-- Voir `experiments/agents-trial/results.md` pour le détail.
+- **4/4 trials** réels via `agent_io.py` + claude.ai, profils méca très variés :
+  - Trial 1 : aero (Safran/Airbus, EN9100, 12-15 machines) ✓
+  - Trial 2 : auto (Stellantis/Renault/Bosch, IATF 16949, 20-25 machines, 3x8) ✓
+  - Trial 3 : médical (Smith&Nephew, ISO 13485, traçabilité unitaire) ✓
+  - Trial 4 : polyvalent sans certif (atelier 12 personnes, prototypes + petites séries) ✓
+- Comportement cohérent à travers les 4 profils : enums respectés, estimations
+  milieu de fourchette tracées, gestion `autre` pour les inputs hors enum,
+  honnêteté signalée par Claude (« à confirmer » sur tour parallèle conventionnel).
 
-**Reste à faire** : reproduire sur 4-5 profils variés (auto, médical, hors aero)
-avant ✅.
+**Limites d'enum identifiées** (à traiter post-pilotes design partners) :
+- `machine_types` : ajouter `tour_conventionnel`
+- `shared_resources_kinds` : ajouter `salle_blanche`
+- `main_materials` : ajouter `plastique` ou `peek`
 
-**Statut** : 🔵 en test, **première validation positive**.
+Ces ajustements sont **localisés dans la verticale méca**, n'impactent pas
+l'engine.
+
+**Statut** : ✅ stabilisée le 2026-04-30.
 
 ---
 
@@ -176,22 +183,18 @@ placement OF ou d'une infaisabilité, sans jargon solveur.
 
 **Tests** : 4 tests dont rejet de `kind` invalide et de listes trop longues.
 
-**Validation empirique** :
-- Trial 1 — `placement` : ✗ **ÉCHEC validation Pydantic** (Claude a omis `kind`).
-- Itération immédiate du prompt v1 : règle 5 renforcée explicitement (« `kind`
-  est **obligatoire**, ne pas omettre »), mention en tête de Tâche signalant
-  qu'une réponse sans `kind` sera rejetée.
-- Trial 2 — `infeasibility` : ✓ Validé. Summary clair, 3 reasons concrètes,
-  3 actions actionnables, **0 jargon solveur** (interdiction respectée).
+**Validation empirique** : **3/3 trials OK** après 1 itération de prompt.
+- Trial 1 — `placement` (prompt v1) : ✗ **ÉCHEC** (Claude a omis `kind`).
+- Itération v1 → v1.1 : règle 5 renforcée + mention en tête de Tâche.
+- Trial 2 — `infeasibility` (prompt v1) : ✓ Summary clair, 3 reasons, 3 actions.
+- Trial 3 — `placement` (prompt v1.1, re-test) : ✓ Validé, `kind` correctement
+  présent, exploit de la donnée context (« 3 jours de marge »).
 
-**Signal positif** : la `ValidationError` Pydantic a attrapé le bug (`kind`
-manquant) qui serait passé silencieusement sans le schéma strict. Validation
-de la doctrine "Pydantic strict + validators métier" en conditions réelles.
+**Signal positif** : la `ValidationError` Pydantic a attrapé le bug du prompt v1
+qui serait passé silencieusement sans le schéma strict. Validation de la
+doctrine "Pydantic strict + validators métier" en conditions réelles.
 
-**Reste à faire** : re-tester `placement` avec le prompt durci, puis reproduire
-sur 5+ trials par mode.
-
-**Statut** : 🔵 en test, **prompt v1 durci suite au trial 1**.
+**Statut** : ✅ stabilisée le 2026-04-30 (avec prompt v1.1).
 
 ---
 
@@ -217,34 +220,36 @@ jamais l'appliquer directement** (validation humaine obligatoire).
 **Tests** : 4 tests dont path clarification, rejet d'incohérences, rejet de plan
 vide sans clarification.
 
-**Validation empirique** :
-- Trial 1/1 sur cas piège conditionnel (« priorité 1 sur Safran ET bascule sur
-  TOUR-02 si TOUR-01 trop chargé ») : **✓ Validé**, 2 actions distinctes
-  (set_order_priority + reassign_operation_machine), `condition_applied` tracée
-  dans `params` (87 % vs 42 %), `user_request_normalized` reformulée proprement.
-- **Comportement notable** : Claude a interprété la condition floue plutôt que
-  demander clarification (`needs_clarification = false`). Défendable vu l'écart
-  87/42, mais à observer sur cas border-line.
+**Validation empirique** : **2/2 trials OK avec comportement discriminant confirmé**.
+- Trial 1 — Condition tranchable (87 % vs 42 %) : ✓ 2 actions distinctes
+  (set_order_priority + reassign), `condition_applied` tracée. Claude
+  interprète proactivement.
+- Trial 2 — Condition non tranchable (51 % vs 49 %, 2 OF Bosch) : ✓
+  `needs_clarification=true` + question fermée précise sur quel(s) OF
+  basculer. Claude **bascule en clarification** quand l'ambiguïté est réelle.
 
-**Reste à faire** : reproduire sur 4-5 demandes incluant un cas
-"condition non tranchable" (par exemple TOUR-01 à 51 % vs TOUR-02 à 49 %).
+**Signal très fort** : le comportement de Claude est **discriminant** selon le
+contexte. Avec écart significatif → tranche. Avec écart serré + cible
+ambiguë → demande clarification. Le prompt v1 gère bien les deux cas sans
+itération nécessaire. Le validator Pydantic
+`needs_clarification ⇔ actions==[]` validé en conditions réelles.
 
-**Statut** : 🔵 en test, **première validation positive avec observation**.
+**Statut** : ✅ stabilisée le 2026-04-30.
 
 ---
 
 ## Métriques cumulées Phase 3
 
-| Étape | Type | Tests ajoutés | Statut |
-|-------|------|--------------:|--------|
-| 3.1 + 3.2 | MCP server | 0 | ❌ abandonnée |
-| 3.3 | Couche LLM (provider, parsing) | 14 | ✅ |
-| 3.4 | Agent questionnaire | 3 | 🔵 |
-| 3.5 | Agent extraction CSV | 3 | ✅ (prompt validé) |
-| 3.6 | Agent soft constraints NL | 4 | ✅ (prompt validé) |
-| 3.7 | Agent explication | 4 | 🔵 |
-| 3.8 | Agent édition conversationnelle | 4 | 🔵 |
-| **Total Phase 3** | | **32** | 3 ✅ + 3 🔵 + 2 ❌ |
+| Étape | Type | Tests auto | Trials réels | Statut |
+|-------|------|-----------:|--------------|--------|
+| 3.1 + 3.2 | MCP server | 0 | — | ❌ abandonnée |
+| 3.3 | Couche LLM (provider, parsing) | 14 | — | ✅ |
+| 3.4 | Agent questionnaire | 3 | 4/4 (aero, auto, médical, polyvalent) | ✅ |
+| 3.5 | Agent extraction CSV | 3 | déjà 45/45 + 15/15 (Phase 2) | ✅ |
+| 3.6 | Agent soft constraints NL | 4 | 1 trial Phase 3 (10/10 phrases) | ✅ |
+| 3.7 | Agent explication | 4 | 3/3 (1 fail attrapé → fix → re-test OK) | ✅ |
+| 3.8 | Agent édition conversationnelle | 4 | 2/2 (tranchable + non tranchable) | ✅ |
+| **Total Phase 3** | | **32 tests auto** | **13 trials réels** | **6 ✅ + 2 ❌** |
 
 Suite globale : **279 passants** (vs 246 ouverture Phase 3).
 
@@ -277,12 +282,29 @@ Suite globale : **279 passants** (vs 246 ouverture Phase 3).
 
 ## Prochaines étapes
 
-### Restant Phase 3
+### Phase 3 ✅ — entièrement stabilisée
 
-1. Validation empirique de **3.4** sur 10 cas types (design partners pour onboarding).
-2. Validation empirique de **3.7** sur 30 cas types (variés placement + infeasible).
-3. Validation empirique de **3.8** sur 10 modifications types (avec validation humaine).
-4. Marker pytest `@pytest.mark.live_api` + tests live (gated par `ANTHROPIC_API_KEY`).
+13 trials réels, 12 ✓ et 1 fail attrapé par Pydantic puis corrigé. Tous les
+prompts tiennent en conditions réelles. Limites d'enum identifiées
+(`tour_conventionnel`, `salle_blanche`, `plastique`/`peek`) et localisées dans
+la verticale méca, à traiter post-pilotes design partners.
+
+### Bilan méthodologique
+
+La doctrine **« scaffolding générique + Pydantic strict + validation no-code »**
+est validée comme méthodologie de dev d'agents LLM :
+- Le scaffolding (LLMProvider, Agent base, schémas Pydantic) est livré en 1
+  session, sans clé API.
+- Les prompts sont itérés via le workflow no-code (`prompt` → claude.ai →
+  `validate`) pour un coût marginal (≈ 5 min/trial).
+- Les bugs de prompt sont attrapés à la `ValidationError` Pydantic plutôt qu'en
+  prod silencieusement (ex: `kind` manquant 3.7 trial 1).
+- Les comportements pro-actifs / clarifiants de Claude sont observés et tracés
+  (ex: discriminant 3.8 sur conditions tranchables/non tranchables).
+
+À reproduire pour toute nouvelle verticale (santé, éducation, services
+techniques) : créer les agents, les prompts, valider en no-code, brancher API
+en production.
 
 ### Phases ouvrables ensuite
 

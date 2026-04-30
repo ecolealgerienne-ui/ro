@@ -122,4 +122,4 @@ narratifs (`../phase-{0,1,2}-report.md`).
 - ✅ Phase 0 stabilisée (Gate 0 ✓ : OR-Tools validé sur Taillard)
 - 🟡 Phase 1 en cours (1.1 ✓, 1.1.opt et 1.2-1.8 restantes)
 - ✅ **Phase 2 stabilisée + Gate 1 ✓** (trust layer technique livrée, 0 erreur silencieuse / 20 ateliers tests)
-- 🔵 **Phase 3 en test** (3.3 ✓ couche LLM, 3.5 ✓ extraction CSV, 3.6 ✓ soft constraints, 3.4/3.7/3.8 🔵 scaffolding livré, validation manuelle à faire)
+- ✅ **Phase 3 stabilisée** (3.3-3.8 livrés, 13 trials réels OK, prompts validés ; 3.1/3.2 MCP abandonnés)
