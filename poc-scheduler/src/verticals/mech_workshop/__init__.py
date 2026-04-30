@@ -62,6 +62,7 @@ from src.verticals.mech_workshop.preflight_config import (
     MECH_REQUIRED_CANONICAL_FIELDS,
 )
 from src.verticals.mech_workshop.scoring_config import MECH_CONFIDENCE_WEIGHTS
+from src.verticals.mech_workshop.simulation_config import MECH_SIMULATION_THRESHOLDS
 
 __all__ = [
     "CLIENT_NAMES_BY_TIER",
@@ -75,6 +76,7 @@ __all__ = [
     "MECH_COLUMN_PATTERNS",
     "MECH_CONFIDENCE_WEIGHTS",
     "MECH_REQUIRED_CANONICAL_FIELDS",
+    "MECH_SIMULATION_THRESHOLDS",
     "N_FAMILIES",
     "OPERATIONS_CANONICAL",
     "OPERATION_BASE_TIMES_MIN",
