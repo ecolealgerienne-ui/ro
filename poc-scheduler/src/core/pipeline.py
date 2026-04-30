@@ -102,8 +102,7 @@ def _decide(
     if cb.outcome is not CircuitBreakerOutcome.SOLVED:
         mis = cb.mis_summary or "(MIS non disponible)"
         reasons.append(
-            f"Circuit breaker : outcome {cb.outcome.value}, "
-            f"{cb.n_attempts} tentative(s). {mis}"
+            f"Circuit breaker : outcome {cb.outcome.value}, {cb.n_attempts} tentative(s). {mis}"
         )
         return PipelineDecision(kind=PipelineDecisionKind.REJECT, reasons=reasons)
 
@@ -115,9 +114,7 @@ def _decide(
         return PipelineDecision(kind=PipelineDecisionKind.REJECT, reasons=reasons)
 
     if simulation.verdict is SimulationVerdict.REJECT:
-        n_critical = sum(
-            1 for v in simulation.violations if v.severity is ViolationSeverity.REJECT
-        )
+        n_critical = sum(1 for v in simulation.violations if v.severity is ViolationSeverity.REJECT)
         reasons.append(
             f"Simulation REJECT : {n_critical} violation(s) critique(s) sur "
             f"{len(simulation.violations)} totale(s)"
@@ -177,9 +174,7 @@ def run_pipeline(
     score: ConfidenceScore | None = None
 
     if cb.outcome is CircuitBreakerOutcome.SOLVED:
-        simulation = simulate_schedule(
-            instance, cb.final_result, **simulation_thresholds
-        )
+        simulation = simulate_schedule(instance, cb.final_result, **simulation_thresholds)
         # Le budget effectif = celui de la derniere tentative
         final_budget = cb.attempts[-1].time_limit_s
         score = score_solver_result(
