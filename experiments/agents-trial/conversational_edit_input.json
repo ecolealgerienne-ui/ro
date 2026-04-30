@@ -1,0 +1,21 @@
+{
+  "user_request": "Mets l'OF 2026-007 Safran en priorite haute et bascule-le sur TOUR-02 si TOUR-01 est trop charge",
+  "instance_summary": {
+    "n_orders": 47,
+    "clients": ["Safran", "PSA", "Airbus", "Bosch"],
+    "machines": ["TOUR-01", "TOUR-02", "FRAIS-01", "FRAIS-02", "RECT-01"],
+    "current_priority_levels": {
+      "Safran": "medium",
+      "PSA": "medium",
+      "Airbus": "high",
+      "Bosch": "low"
+    },
+    "machine_load_pct": {
+      "TOUR-01": 87,
+      "TOUR-02": 42,
+      "FRAIS-01": 93,
+      "FRAIS-02": 71,
+      "RECT-01": 35
+    }
+  }
+}

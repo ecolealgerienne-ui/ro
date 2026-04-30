@@ -1,0 +1,16 @@
+{
+  "kind": "infeasibility",
+  "context": {
+    "n_orders": 47,
+    "n_machines": 12,
+    "horizon_days": 10,
+    "circuit_breaker_outcome": "INFEASIBLE",
+    "n_attempts": 1,
+    "mis_summary": "FRAIS-02 capacite epuisee semaine 20 (deadline 4 OF Safran cumulés > capacite machine). Pas de machine alternative qualifiee aluminium 7075.",
+    "blocking_factors": [
+      "FRAIS-02 saturee (charge 105 % semaine 20)",
+      "4 OF Safran avec deadline 2026-05-22 cumulent 14 h",
+      "Pas de FRAIS alternative qualifiee alu 7075"
+    ]
+  }
+}

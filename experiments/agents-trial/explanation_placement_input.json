@@ -1,0 +1,23 @@
+{
+  "kind": "placement",
+  "context": {
+    "order_id": "OF-2026-001",
+    "client": "Safran",
+    "piece_name": "Bague_pivot",
+    "operation": {
+      "sequence_idx": 0,
+      "operation_type": "tournage_ebauche",
+      "machine": "TOUR-01",
+      "duration_min": 45
+    },
+    "scheduled_start": "2026-05-12 14:00",
+    "scheduled_end": "2026-05-12 14:45",
+    "alternative_machines_considered": ["TOUR-02"],
+    "reason_codes": [
+      "TOUR-02 occupe sur creneau",
+      "TOUR-01 plus proche en charge cumul",
+      "Pas de changement de matiere requis sur TOUR-01"
+    ],
+    "deadline": "2026-05-15"
+  }
+}

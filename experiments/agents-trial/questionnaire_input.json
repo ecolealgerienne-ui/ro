@@ -1,0 +1,15 @@
+{
+  "answers": {
+    "size_band": "10-50 personnes",
+    "n_machines_range": "12-15",
+    "n_operators_range": "15-20",
+    "machine_types_present": ["tour CN", "fraiseuse 5 axes", "rectifieuse"],
+    "main_certifications": ["EN9100 aero", "ISO 9001"],
+    "main_materials": ["aluminium 7075", "titane TA6V", "inox 316L"],
+    "shifts": "2 equipes 8h",
+    "shared_resources_present": "oui : aspiration centralisee + pont roulant",
+    "typical_order_size": "30 a 80 pieces par OF",
+    "typical_lead_time": "3 a 4 semaines",
+    "extra_notes": "Donneur d'ordre principal Safran. Quelques OF urgents Airbus en spot."
+  }
+}
