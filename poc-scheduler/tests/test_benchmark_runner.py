@@ -44,9 +44,7 @@ def mini_data_dir(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     (data_dir / "test_other").write_text(
-        "2 2\n"
-        "1 2 2 1\n"
-        "2 1 1 2\n",
+        "2 2\n1 2 2 1\n2 1 1 2\n",
         encoding="utf-8",
     )
     (data_dir / "instances_metadata.csv").write_text(

@@ -1,7 +1,11 @@
-"""Construit un prompt prêt-à-coller pour Claude.ai en combinant pre-flight + template.
+"""Construit un prompt prêt-à-coller pour Claude.ai (verticale `mech_workshop`).
+
+Combine pre-flight + template. Le moteur pre-flight est générique ; ce script
+l'instancie avec la config de la verticale méca.
 
 Pipeline :
-    CSV brut → run_preflight() → si OK : template prompt_v3 + variables → stdout/fichier
+    CSV brut → run_preflight(MECH_*) → si OK : template prompt_v3 + variables
+             → stdout/fichier
 
 Usage :
     # Prompt complet vers stdout (à pipe ou copier)
@@ -37,6 +41,10 @@ import click
 from rich.console import Console
 
 from src.preflight import PreflightReport, Severity, run_preflight
+from src.verticals.mech_workshop import (
+    MECH_COLUMN_PATTERNS,
+    MECH_REQUIRED_CANONICAL_FIELDS,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXPERIMENTS_DIR = REPO_ROOT.parent / "experiments" / "llm-extraction"
@@ -90,8 +98,8 @@ def _build_cleaned_csv(report: PreflightReport) -> str:
 def _print_blocking_details(report: PreflightReport) -> None:
     """Affiche un diagnostic compact sur stderr quand le pre-flight bloque."""
     stderr.print()
-    stderr.print(f"[red]✗ Pre-flight bloquant — pas d'appel LLM[/]")
-    should, reason = report.should_call_llm()
+    stderr.print("[red]✗ Pre-flight bloquant — pas d'appel LLM[/]")
+    _should, reason = report.should_call_llm()
     stderr.print(f"  Raison : {reason}")
     blocking = [e for e in report.errors if e.severity == Severity.BLOCKING]
     if blocking:
@@ -169,8 +177,13 @@ def cli(
         stderr.print(f"[red]✗ Schéma introuvable : {schema_path}[/]")
         sys.exit(2)
 
-    # 1. Pre-flight
-    report = run_preflight(csv_path, today=today)
+    # 1. Pre-flight (config verticale méca)
+    report = run_preflight(
+        csv_path,
+        column_patterns=MECH_COLUMN_PATTERNS,
+        required_canonical_fields=MECH_REQUIRED_CANONICAL_FIELDS,
+        today=today,
+    )
     should_call, _reason = report.should_call_llm()
     if not should_call:
         _print_blocking_details(report)

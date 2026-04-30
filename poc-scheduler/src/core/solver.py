@@ -128,7 +128,9 @@ class JSSPSolver:
         # --- Variables par opération ---
         op_vars: dict[tuple[int, int], dict[str, Any]] = {}
         intervals_per_machine: dict[int, list[Any]] = {m.machine_id: [] for m in instance.machines}
-        ops_per_machine: dict[int, list[tuple[int, int]]] = {m.machine_id: [] for m in instance.machines}
+        ops_per_machine: dict[int, list[tuple[int, int]]] = {
+            m.machine_id: [] for m in instance.machines
+        }
 
         for job in instance.jobs:
             for op in job.operations:
@@ -179,7 +181,7 @@ class JSSPSolver:
         # --- Setup-dependent (si matrice non vide), en plus du NoOverlap ---
         if instance.has_setup_constraints:
             setup_pattern = SequenceDependentSetupPattern()
-            for machine_id, op_keys in ops_per_machine.items():
+            for _machine_id, op_keys in ops_per_machine.items():
                 if len(op_keys) <= 1:
                     continue
                 starts = [op_vars[k]["start"] for k in op_keys]
@@ -338,8 +340,7 @@ def validate_schedule(
                 continue
             if assignment.machine_id != op.machine_id:
                 errors.append(
-                    f"Opération {key} : machine {assignment.machine_id} "
-                    f"≠ {op.machine_id} attendue"
+                    f"Opération {key} : machine {assignment.machine_id} ≠ {op.machine_id} attendue"
                 )
             if assignment.end - assignment.start != op.duration:
                 errors.append(

@@ -1,4 +1,4 @@
-"""Tests du module pre-flight.
+"""Tests du module pre-flight (moteur générique) avec config verticale `mech_workshop`.
 
 Couvre :
 - Mapping colonnes (heuristique regex)
@@ -15,17 +15,36 @@ Couvre :
 from __future__ import annotations
 
 from datetime import date
-
-import pytest
+from pathlib import Path
 
 from src.preflight import (
     PreflightErrorType,
+    PreflightReport,
     Severity,
-    run_preflight,
+)
+from src.preflight import (
+    run_preflight as _run_preflight_engine,
+)
+from src.verticals.mech_workshop import (
+    MECH_COLUMN_PATTERNS,
+    MECH_REQUIRED_CANONICAL_FIELDS,
 )
 
-
 TODAY = date(2026, 4, 30)
+
+
+def run_preflight(
+    content_or_path: str | bytes | Path,
+    *,
+    today: date | None = None,
+) -> PreflightReport:
+    """Helper de test : appelle le moteur générique avec la config méca."""
+    return _run_preflight_engine(
+        content_or_path,
+        column_patterns=MECH_COLUMN_PATTERNS,
+        required_canonical_fields=MECH_REQUIRED_CANONICAL_FIELDS,
+        today=today,
+    )
 
 
 # ---------- Cas propre baseline ----------
@@ -117,9 +136,7 @@ def test_required_column_missing_blocks() -> None:
     report = run_preflight(csv, today=TODAY)
     assert report.csv_parseable
     assert report.has_blocking_errors
-    assert any(
-        e.type == PreflightErrorType.COLUMN_REQUIRED_MISSING for e in report.errors
-    )
+    assert any(e.type == PreflightErrorType.COLUMN_REQUIRED_MISSING for e in report.errors)
     should, reason = report.should_call_llm()
     assert not should
     assert "duration_min" in reason or "Erreur globale" in reason
@@ -133,9 +150,7 @@ def test_duration_negative_is_warning_not_blocking() -> None:
     report = run_preflight(csv, today=TODAY)
     assert report.csv_parseable
     assert len(report.cleaned_rows) == 1  # ligne préservée
-    warnings = [
-        e for e in report.errors if e.type == PreflightErrorType.DURATION_NEGATIVE_OR_ZERO
-    ]
+    warnings = [e for e in report.errors if e.type == PreflightErrorType.DURATION_NEGATIVE_OR_ZERO]
     assert len(warnings) == 1
     assert warnings[0].severity == Severity.WARNING
     assert warnings[0].raw_value == "-30"
@@ -145,9 +160,7 @@ def test_duration_zero_is_warning() -> None:
     csv = "OF;Duree_min;Date_livraison\nOF1;0;2026-05-15"
     report = run_preflight(csv, today=TODAY)
     assert len(report.cleaned_rows) == 1
-    warnings = [
-        e for e in report.errors if e.type == PreflightErrorType.DURATION_NEGATIVE_OR_ZERO
-    ]
+    warnings = [e for e in report.errors if e.type == PreflightErrorType.DURATION_NEGATIVE_OR_ZERO]
     assert len(warnings) == 1
 
 
@@ -220,8 +233,7 @@ def test_empty_required_field_is_blocking() -> None:
     report = run_preflight(csv, today=TODAY)
     assert len(report.cleaned_rows) == 0
     assert any(
-        e.type == PreflightErrorType.REQUIRED_FIELD_EMPTY
-        and e.severity == Severity.BLOCKING
+        e.type == PreflightErrorType.REQUIRED_FIELD_EMPTY and e.severity == Severity.BLOCKING
         for e in report.errors
     )
 
@@ -237,9 +249,7 @@ OF1;30;2026-05-15
 """
     report = run_preflight(csv, today=TODAY)
     assert len(report.cleaned_rows) == 2
-    duplicates = [
-        e for e in report.errors if e.type == PreflightErrorType.OF_DUPLICATE_EXACT
-    ]
+    duplicates = [e for e in report.errors if e.type == PreflightErrorType.OF_DUPLICATE_EXACT]
     assert len(duplicates) == 1
     assert duplicates[0].severity == Severity.WARNING
 
@@ -252,9 +262,7 @@ OF1;30;2026-05-15
 OF1;25;2026-05-15
 """
     report = run_preflight(csv, today=TODAY)
-    duplicates = [
-        e for e in report.errors if e.type == PreflightErrorType.OF_DUPLICATE_EXACT
-    ]
+    duplicates = [e for e in report.errors if e.type == PreflightErrorType.OF_DUPLICATE_EXACT]
     assert len(duplicates) == 0
 
 

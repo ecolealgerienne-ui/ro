@@ -23,7 +23,7 @@ from rich.progress import (
 )
 from rich.table import Table
 
-from src.generators.workshop_generator import (
+from src.verticals.mech_workshop.generator import (
     GenerationParams,
     SyntheticWorkshop,
     generate_workshop,
@@ -98,7 +98,9 @@ def cli() -> None:
     help="Chemin du fichier JSON de sortie.",
 )
 @click.option("--seed", default=42, type=int, show_default=True)
-@click.option("--machines", default=None, type=int, help="Nombre de machines fixé (sinon range défaut).")
+@click.option(
+    "--machines", default=None, type=int, help="Nombre de machines fixé (sinon range défaut)."
+)
 @click.option("--operators", default=None, type=int, help="Nombre d'opérateurs fixé.")
 @click.option("--jobs", default=None, type=int, help="Nombre d'OF fixé.")
 @click.option("--horizon-days", default=10, type=int, show_default=True)
@@ -142,7 +144,9 @@ def cmd_single(
     show_default=True,
     help="Dossier de sortie.",
 )
-@click.option("--seed-base", default=42, type=int, show_default=True, help="Seed du premier atelier.")
+@click.option(
+    "--seed-base", default=42, type=int, show_default=True, help="Seed du premier atelier."
+)
 @click.option("--machines", default=None, type=int)
 @click.option("--operators", default=None, type=int)
 @click.option("--jobs", default=None, type=int)

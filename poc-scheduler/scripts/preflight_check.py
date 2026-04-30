@@ -1,9 +1,13 @@
-"""CLI pour exécuter le pre-flight sur un fichier CSV ERP.
+"""CLI pour exécuter le pre-flight sur un fichier CSV ERP (verticale `mech_workshop`).
 
 Usage :
     uv run python scripts/preflight_check.py path/to/file.csv
     uv run python scripts/preflight_check.py path/to/file.csv --today 2026-04-30
     uv run python scripts/preflight_check.py path/to/file.csv --verbose
+
+Le moteur pre-flight est générique ; ce script l'instancie avec la config de
+la verticale méca (`MECH_COLUMN_PATTERNS`, `MECH_REQUIRED_CANONICAL_FIELDS`).
+Pour cibler une autre verticale, dupliquer ce script et changer l'import.
 
 Exit codes :
     0 — pre-flight OK, peut continuer vers le LLM
@@ -23,6 +27,10 @@ from rich.panel import Panel
 from rich.table import Table
 
 from src.preflight import PreflightReport, Severity, run_preflight
+from src.verticals.mech_workshop import (
+    MECH_COLUMN_PATTERNS,
+    MECH_REQUIRED_CANONICAL_FIELDS,
+)
 
 console = Console()
 
@@ -42,7 +50,9 @@ def _print_overview(report: PreflightReport) -> None:
     table.add_column("Valeur")
 
     table.add_row("CSV parseable", "[green]✓[/]" if report.csv_parseable else "[red]✗[/]")
-    table.add_row("Séparateur détecté", repr(report.detected_separator) if report.detected_separator else "—")
+    table.add_row(
+        "Séparateur détecté", repr(report.detected_separator) if report.detected_separator else "—"
+    )
     table.add_row("Encodage détecté", report.detected_encoding or "—")
     table.add_row("Lignes parsées", str(report.rows_parsed))
     table.add_row("Lignes cleaned", str(len(report.cleaned_rows)))
@@ -81,7 +91,11 @@ def _print_errors(report: PreflightReport, verbose: bool) -> None:
     items = report.errors if verbose else report.errors[:10]
     for err in items:
         sev_color = _severity_color(err.severity)
-        desc = err.description if verbose else (err.description[:80] + "…" if len(err.description) > 80 else err.description)
+        desc = (
+            err.description
+            if verbose
+            else (err.description[:80] + "…" if len(err.description) > 80 else err.description)
+        )
         table.add_row(
             f"[{sev_color}]{err.severity.value}[/]",
             err.type.value,
@@ -91,7 +105,9 @@ def _print_errors(report: PreflightReport, verbose: bool) -> None:
             desc,
         )
     if not verbose and len(report.errors) > 10:
-        table.caption = f"… {len(report.errors) - 10} autres erreurs (utilise --verbose pour tout voir)"
+        table.caption = (
+            f"… {len(report.errors) - 10} autres erreurs (utilise --verbose pour tout voir)"
+        )
     console.print()
     console.print(table)
 
@@ -148,7 +164,12 @@ def cli(csv_path: Path, today_iso: str | None, verbose: bool) -> None:
         today = date.today()
 
     console.print(f"[bold]Pre-flight[/] sur [cyan]{csv_path}[/] (today={today.isoformat()})")
-    report = run_preflight(csv_path, today=today)
+    report = run_preflight(
+        csv_path,
+        column_patterns=MECH_COLUMN_PATTERNS,
+        required_canonical_fields=MECH_REQUIRED_CANONICAL_FIELDS,
+        today=today,
+    )
 
     _print_overview(report)
     _print_mapping(report)

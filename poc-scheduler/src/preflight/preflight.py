@@ -1,4 +1,8 @@
-"""Logique principale du module pre-flight.
+"""Logique principale du module pre-flight — moteur générique vertical-agnostic.
+
+Le pre-flight ne connaît AUCUNE verticale. Les patterns de colonnes et champs
+canoniques requis sont fournis par la verticale appelante (ex:
+`verticals/mech_workshop/preflight_config.py`).
 
 Voir `__init__.py` pour le contexte général.
 Voir `experiments/llm-extraction/preflight-design.md` pour le design détaillé.
@@ -10,7 +14,7 @@ import csv
 import io
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime
 from pathlib import Path
 from typing import Final
@@ -24,81 +28,6 @@ from src.preflight.models import (
 )
 
 _logger = logging.getLogger(__name__)
-
-
-# ---------- Constantes ----------
-
-
-# Champs canoniques attendus dans la sortie finale (post-LLM).
-# Ils servent de cibles au mapping heuristique pre-flight.
-CANONICAL_FIELDS: Final[tuple[str, ...]] = (
-    "order_id",
-    "client",
-    "piece_name",
-    "material",
-    "operation_type",
-    "machine",
-    "duration_min",
-    "deadline",
-)
-
-# Champs canoniques sans lesquels le pre-flight ne peut pas continuer.
-REQUIRED_CANONICAL_FIELDS: Final[frozenset[str]] = frozenset({"order_id", "duration_min"})
-
-# Patterns regex (insensibles à la casse) par champ canonique.
-# Ordre interne : spécifique → générique.
-COLUMN_PATTERNS: Final[dict[str, tuple[str, ...]]] = {
-    "order_id": (
-        r"^no_of$",
-        r"^num_of$",
-        r"^of$",
-        r"^order_?id$",
-        r"^reference_of$",
-        r"^numero(_of)?$",
-    ),
-    "client": (
-        r"^ref_client$",
-        r"^client$",
-        r"^customer$",
-        r"^donneur(_d_ordre)?$",
-    ),
-    "piece_name": (
-        r"^desig(_piece)?$",
-        r"^designation$",
-        r"^piece(_name)?$",
-        r"^part_?name$",
-        r"^libelle_piece$",
-    ),
-    "material": (
-        r"^materi(au|al)$",
-        r"^matiere$",
-        r"^mat(_ref)?$",
-    ),
-    "operation_type": (
-        r"^operation(_desc)?$",
-        r"^op_desc$",
-        r"^op_libelle$",
-        r"^operation_type$",
-    ),
-    "machine": (
-        r"^poste(_travail)?$",
-        r"^machine$",
-        r"^workstation$",
-        r"^ressource$",
-    ),
-    "duration_min": (
-        r"^duree(_min|_op)?$",
-        r"^tps_op(_min)?$",
-        r"^temps(_op)?$",
-        r"^duration(_min)?$",
-    ),
-    "deadline": (
-        r"^date_liv(raison)?$",
-        r"^deadline$",
-        r"^echeance$",
-        r"^date_due$",
-    ),
-}
 
 # Formats de date acceptés (par ordre de tentative).
 # Le dernier (US) est essayé en dernier pour éviter d'interpréter 03/04 comme avril plutôt que mars.
@@ -174,18 +103,23 @@ def _detect_separator(content: str) -> str | None:
 # ---------- Mapping colonnes ----------
 
 
-def _suggest_column_mapping(headers: Sequence[str]) -> dict[str, str]:
+def _suggest_column_mapping(
+    headers: Sequence[str],
+    column_patterns: Mapping[str, Sequence[str]],
+) -> dict[str, str]:
     """Heuristique regex pour mapper les colonnes source vers les champs canoniques.
 
     Retourne uniquement les mappings sans ambiguïté. Si une colonne source matche
     plusieurs cibles, ou plusieurs sources matchent une même cible, l'ambiguïté
     est laissée au LLM (champs non inclus).
+
+    `column_patterns` est fourni par la verticale (ex: `MECH_COLUMN_PATTERNS`).
     """
     matches: dict[str, list[str]] = {}  # source_header → [canonical_targets]
     for header in headers:
         normalized = header.strip().lower().replace(" ", "_")
         targets: list[str] = []
-        for canonical, patterns in COLUMN_PATTERNS.items():
+        for canonical, patterns in column_patterns.items():
             if any(re.fullmatch(p, normalized) for p in patterns):
                 targets.append(canonical)
         if targets:
@@ -247,6 +181,7 @@ def _validate_row(
     raw_row: dict[str, str],
     column_mapping: dict[str, str],
     today: date,
+    required_canonical_fields: frozenset[str],
 ) -> tuple[CleanedRow | None, list[PreflightError]]:
     """Valide une ligne et retourne soit la ligne nettoyée + warnings, soit None + erreurs."""
     errors: list[PreflightError] = []
@@ -255,7 +190,7 @@ def _validate_row(
 
     inverse_mapping = {v: k for k, v in column_mapping.items()}
 
-    for canonical in REQUIRED_CANONICAL_FIELDS:
+    for canonical in required_canonical_fields:
         source = inverse_mapping.get(canonical)
         if source is None:
             # Erreur globale traitée ailleurs ; ici on ne peut juste pas valider.
@@ -381,6 +316,8 @@ def _detect_exact_duplicates(rows: list[CleanedRow]) -> list[PreflightError]:
 def run_preflight(
     content_or_path: str | bytes | Path,
     *,
+    column_patterns: Mapping[str, Sequence[str]],
+    required_canonical_fields: frozenset[str],
     today: date | None = None,
 ) -> PreflightReport:
     """Exécute le pre-flight sur un CSV.
@@ -388,6 +325,11 @@ def run_preflight(
     Args:
         content_or_path: Soit le contenu textuel du CSV, soit `bytes` brut, soit
             un `Path` vers le fichier.
+        column_patterns: Patterns regex par champ canonique, fournis par la
+            verticale (ex: `MECH_COLUMN_PATTERNS`). Le moteur pre-flight ne
+            connaît aucune verticale.
+        required_canonical_fields: Champs canoniques sans lesquels le pre-flight
+            ne peut continuer (ex: `MECH_REQUIRED_CANONICAL_FIELDS`).
         today: Date de référence pour le check `date_in_past`. Défaut = aujourd'hui.
 
     Returns:
@@ -507,9 +449,9 @@ def run_preflight(
         )
 
     # 4. Mapping colonnes
-    column_mapping = _suggest_column_mapping(headers)
+    column_mapping = _suggest_column_mapping(headers, column_patterns)
     inverse = {v: k for k, v in column_mapping.items()}
-    missing_required = REQUIRED_CANONICAL_FIELDS - set(inverse.keys())
+    missing_required = required_canonical_fields - set(inverse.keys())
     if missing_required:
         for canonical in sorted(missing_required):
             errors.append(
@@ -536,7 +478,9 @@ def run_preflight(
     # 5. Validation ligne par ligne
     cleaned_rows: list[CleanedRow] = []
     for idx, raw_row in enumerate(rows_raw):
-        cleaned, row_errors = _validate_row(idx, raw_row, column_mapping, today)
+        cleaned, row_errors = _validate_row(
+            idx, raw_row, column_mapping, today, required_canonical_fields
+        )
         errors.extend(row_errors)
         if cleaned is not None:
             cleaned_rows.append(cleaned)

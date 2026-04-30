@@ -183,11 +183,11 @@ N_FAMILIES: Final[int] = 7
 # atelier méca précision (changement matière, changement outillage).
 DEFAULT_TRANSITION_MATRIX: Final[tuple[tuple[int, ...], ...]] = (
     # tournage(0), fraisage(1), percage(2), rectif(3), controle(4), finition(5), externe(6)
-    (0,  20, 15, 30, 5,  10, 0),    # depuis tournage
-    (20, 0,  15, 30, 5,  10, 0),    # depuis fraisage
-    (15, 15, 0,  25, 5,  10, 0),    # depuis percage/taraudage
-    (30, 30, 25, 0,  10, 15, 0),    # depuis rectification (changement abrasif coûteux)
-    (5,  5,  5,  10, 0,  5,  0),    # depuis controle (poste différent, peu d'impact)
-    (10, 10, 10, 15, 5,  0,  0),    # depuis finition manuelle
-    (0,  0,  0,  0,  0,  0,  0),    # depuis externe (sous-traitance, pas de setup interne)
+    (0, 20, 15, 30, 5, 10, 0),  # depuis tournage
+    (20, 0, 15, 30, 5, 10, 0),  # depuis fraisage
+    (15, 15, 0, 25, 5, 10, 0),  # depuis percage/taraudage
+    (30, 30, 25, 0, 10, 15, 0),  # depuis rectification (changement abrasif coûteux)
+    (5, 5, 5, 10, 0, 5, 0),  # depuis controle (poste différent, peu d'impact)
+    (10, 10, 10, 15, 5, 0, 0),  # depuis finition manuelle
+    (0, 0, 0, 0, 0, 0, 0),  # depuis externe (sous-traitance, pas de setup interne)
 )

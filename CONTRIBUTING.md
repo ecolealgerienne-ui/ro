@@ -161,7 +161,61 @@ Hooks actifs :
 
 ---
 
-## 8. Ce qu'on ne fait pas
+## 8. Architecture multi-verticale (poc-scheduler/src)
+
+Le code applicatif est séparé en deux strates :
+
+```
+poc-scheduler/src/
+├── core/           # Moteur générique (CP-SAT, modèles, patterns)
+├── preflight/      # Pre-flight CSV générique (vertical-agnostic)
+├── loaders/        # Loaders génériques (Taillard, runners benchmark)
+└── verticals/
+    ├── __init__.py
+    └── mech_workshop/
+        ├── distributions.py      # types machine, matières, opérations
+        ├── generator.py          # générateur d'ateliers synthétiques
+        ├── adapter.py            # SyntheticWorkshop → WorkshopInstance
+        └── preflight_config.py   # MECH_COLUMN_PATTERNS, MECH_REQUIRED_*
+```
+
+### Règles d'imports (à respecter strictement)
+
+| Source | Peut importer | Ne peut PAS importer |
+|--------|---------------|----------------------|
+| `src.core.*` | stdlib, 3rd-party | `src.preflight.*`, `src.verticals.*`, `src.loaders.*` |
+| `src.preflight.*` | stdlib, 3rd-party | `src.verticals.*`, `src.core.*` |
+| `src.loaders.*` | `src.core.*` | `src.verticals.*` |
+| `src.verticals.<X>.*` | `src.core.*`, `src.preflight.*`, `src.loaders.*`, modules de la **même** verticale | `src.verticals.<Y>.*` (autre verticale) |
+| `scripts/*`, `tests/*` | tout | — |
+
+**Principes :**
+- Le moteur (`core` + `preflight` + `loaders`) ne connaît AUCUNE verticale.
+- Les verticales sont **indépendantes** entre elles. Pour partager du code, on
+  remonte dans `core/` ou un nouveau module générique — pas d'import croisé.
+- Toute config métier (patterns regex, distributions, listes canoniques) vit
+  dans `verticals/<nom>/`, jamais dans le moteur.
+- Ajouter une verticale = créer `src/verticals/<nouveau>/` avec son `__init__.py`.
+
+### Garde-fou (à exécuter avant commit / en CI)
+
+```bash
+# Aucun import depuis src/core/ vers src/verticals/ ou src/preflight/
+! grep -RE "^from src\.(verticals|preflight)" poc-scheduler/src/core/
+
+# Aucun import depuis src/preflight/ vers src/verticals/ ou src/core/
+! grep -RE "^from src\.(verticals|core)" poc-scheduler/src/preflight/
+
+# Aucun import croisé entre verticales
+! grep -RE "^from src\.verticals\.[a-z_]+" poc-scheduler/src/verticals/ \
+    | grep -v "$(basename $(dirname %))"
+```
+
+(Ces checks seront automatisés via pre-commit en Phase 2.)
+
+---
+
+## 9. Ce qu'on ne fait pas
 
 - Pas de force push sur `main` ni `dev`
 - Pas de `--no-verify` pour bypass les hooks
@@ -171,7 +225,7 @@ Hooks actifs :
 
 ---
 
-## 9. Mise à jour du `v0-status.md`
+## 10. Mise à jour du `v0-status.md`
 
 À chaque transition d'étape :
 - Statut mis à jour (`⬜ → 🟡 → 🔵 → ✅`)

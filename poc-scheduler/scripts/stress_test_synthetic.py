@@ -35,8 +35,8 @@ from rich.progress import (
 from rich.table import Table
 
 from src.core.solver import JSSPSolver, SolverStatus, validate_schedule
-from src.generators.workshop_generator import GenerationParams, generate_workshop
-from src.loaders.synthetic_adapter import synthetic_to_jssp_instance
+from src.verticals.mech_workshop.adapter import synthetic_to_jssp_instance
+from src.verticals.mech_workshop.generator import GenerationParams, generate_workshop
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "synthetic"
@@ -223,20 +223,22 @@ def _write_csv(records: list[StressRecord], path: Path) -> int:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         for r in records:
-            writer.writerow({
-                "seed": r.seed,
-                "profile": r.profile,
-                "mode": r.mode,
-                "n_machines": r.n_machines,
-                "n_jobs": r.n_jobs,
-                "n_operations": r.n_operations,
-                "status": r.status.value,
-                "makespan": "" if r.makespan is None else r.makespan,
-                "solve_time_seconds": f"{r.solve_time_seconds:.2f}",
-                "feasible_under_budget": str(r.feasible_under_budget),
-                "schedule_valid": str(r.schedule_valid),
-                "patterns_count": r.patterns_count,
-            })
+            writer.writerow(
+                {
+                    "seed": r.seed,
+                    "profile": r.profile,
+                    "mode": r.mode,
+                    "n_machines": r.n_machines,
+                    "n_jobs": r.n_jobs,
+                    "n_operations": r.n_operations,
+                    "status": r.status.value,
+                    "makespan": "" if r.makespan is None else r.makespan,
+                    "solve_time_seconds": f"{r.solve_time_seconds:.2f}",
+                    "feasible_under_budget": str(r.feasible_under_budget),
+                    "schedule_valid": str(r.schedule_valid),
+                    "patterns_count": r.patterns_count,
+                }
+            )
     return len(records)
 
 
@@ -443,9 +445,7 @@ def cmd_compare(
     console.print(summary_table)
 
     # Verdict global : tous les modes >= 80% requis
-    all_pass = all(
-        float(stats_per_mode[m]["feasibility_rate_percent"]) >= 80.0 for m in mode_list
-    )
+    all_pass = all(float(stats_per_mode[m]["feasibility_rate_percent"]) >= 80.0 for m in mode_list)
     console.print()
     if all_pass:
         console.print("[bright_green]✓ Tous les modes ≥ 80% feasibility — Phase 1.1 validée[/]")
@@ -456,7 +456,9 @@ def cmd_compare(
             if float(stats_per_mode[m]["feasibility_rate_percent"]) < 80.0
         ]
         console.print(f"[yellow]⚠ Modes sous 80% : {', '.join(weak)}[/]")
-        console.print("Cela ne signifie pas un échec — c'est l'effet attendu de la complexité ajoutée.")
+        console.print(
+            "Cela ne signifie pas un échec — c'est l'effet attendu de la complexité ajoutée."
+        )
         console.print("Décision en 1.1d : optimiser les patterns coûteux ou ajuster le scope.")
 
     if output:

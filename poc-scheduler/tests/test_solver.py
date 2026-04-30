@@ -23,7 +23,6 @@ from src.core.solver import (
 )
 from src.loaders.taillard import load_taillard_instance
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REAL_DATA_DIR = REPO_ROOT / "data" / "taillard"
 

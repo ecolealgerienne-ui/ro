@@ -105,7 +105,9 @@ def cli() -> None:
 
 @cli.command("solve")
 @click.argument("name")
-@click.option("--time-limit", default=60.0, type=float, show_default=True, help="Budget temps (secondes).")
+@click.option(
+    "--time-limit", default=60.0, type=float, show_default=True, help="Budget temps (secondes)."
+)
 @click.option("--num-workers", default=8, type=int, show_default=True, help="Threads CP-SAT.")
 @click.option(
     "--data-dir",
@@ -122,7 +124,9 @@ def cmd_solve(
     log: bool,
 ) -> None:
     """Résout une instance unique et affiche le résultat."""
-    console.print(f"[bold]Résolution de {name}[/bold] (budget {time_limit:.0f}s, {num_workers} workers)")
+    console.print(
+        f"[bold]Résolution de {name}[/bold] (budget {time_limit:.0f}s, {num_workers} workers)"
+    )
     try:
         record = run_one(
             name,
@@ -173,7 +177,11 @@ def cmd_batch(
     if not instances and not range_spec:
         raise click.UsageError("Spécifier --instances ou --range")
 
-    names = _parse_range(range_spec) if range_spec else [s.strip() for s in (instances or "").split(",") if s.strip()]
+    names = (
+        _parse_range(range_spec)
+        if range_spec
+        else [s.strip() for s in (instances or "").split(",") if s.strip()]
+    )
     console.print(
         f"[bold]Batch de {len(names)} instance(s)[/bold] — "
         f"budget {time_limit:.0f}s × {num_workers} workers"
@@ -188,10 +196,7 @@ def cmd_batch(
         _add_row(table, rec)
         # Re-print whole table progressively (simple, robust)
         console.clear()
-        console.print(
-            f"[bold]Batch en cours[/bold] — "
-            f"{len(records)}/{len(names)} terminés"
-        )
+        console.print(f"[bold]Batch en cours[/bold] — {len(records)}/{len(names)} terminés")
         console.print(table)
 
     # Note : on_record append déjà, donc on n'append pas dans la valeur de retour

@@ -7,17 +7,16 @@ import time
 import pytest
 from pydantic import ValidationError
 
-from src.generators.distributions import (
+from src.verticals.mech_workshop.distributions import (
     MACHINE_TYPES_DEFAULT,
     OPERATION_MACHINE_COMPAT,
     OPERATIONS_CANONICAL,
 )
-from src.generators.workshop_generator import (
+from src.verticals.mech_workshop.generator import (
     GenerationParams,
     SyntheticWorkshop,
     generate_workshop,
 )
-
 
 # ---------- Validation des params ----------
 
@@ -38,15 +37,21 @@ def test_params_rejects_min_greater_than_max() -> None:
 
 
 def test_same_seed_produces_identical_output() -> None:
-    params = GenerationParams(seed=123, n_machines_min=10, n_machines_max=10, n_jobs_min=20, n_jobs_max=20)
+    params = GenerationParams(
+        seed=123, n_machines_min=10, n_machines_max=10, n_jobs_min=20, n_jobs_max=20
+    )
     w1 = generate_workshop(params)
     w2 = generate_workshop(params)
     assert w1.model_dump_json() == w2.model_dump_json()
 
 
 def test_different_seeds_produce_different_outputs() -> None:
-    p1 = GenerationParams(seed=1, n_machines_min=10, n_machines_max=10, n_jobs_min=20, n_jobs_max=20)
-    p2 = GenerationParams(seed=2, n_machines_min=10, n_machines_max=10, n_jobs_min=20, n_jobs_max=20)
+    p1 = GenerationParams(
+        seed=1, n_machines_min=10, n_machines_max=10, n_jobs_min=20, n_jobs_max=20
+    )
+    p2 = GenerationParams(
+        seed=2, n_machines_min=10, n_machines_max=10, n_jobs_min=20, n_jobs_max=20
+    )
     w1 = generate_workshop(p1)
     w2 = generate_workshop(p2)
     assert w1.model_dump_json() != w2.model_dump_json()
@@ -204,7 +209,14 @@ def test_output_serializes_to_json() -> None:
 def test_output_metadata_has_expected_keys() -> None:
     params = GenerationParams(seed=42)
     workshop = generate_workshop(params)
-    expected_keys = {"seed", "n_machines", "n_operators", "n_jobs", "planning_horizon_days", "generator_version"}
+    expected_keys = {
+        "seed",
+        "n_machines",
+        "n_operators",
+        "n_jobs",
+        "planning_horizon_days",
+        "generator_version",
+    }
     assert expected_keys <= set(workshop.metadata.keys())
 
 
@@ -255,13 +267,17 @@ def test_shared_resource_injected_when_probability_one() -> None:
 
 
 def test_shared_resource_reproducible_with_seed() -> None:
-    params = GenerationParams(seed=42, shared_resource_probability=1.0, n_machines_min=10, n_machines_max=10)
+    params = GenerationParams(
+        seed=42, shared_resource_probability=1.0, n_machines_min=10, n_machines_max=10
+    )
     w1 = generate_workshop(params)
     w2 = generate_workshop(params)
     assert w1.model_dump_json() == w2.model_dump_json()
 
 
 def test_shared_resource_count_in_metadata() -> None:
-    params = GenerationParams(seed=42, shared_resource_probability=1.0, n_machines_min=10, n_machines_max=10)
+    params = GenerationParams(
+        seed=42, shared_resource_probability=1.0, n_machines_min=10, n_machines_max=10
+    )
     workshop = generate_workshop(params)
     assert workshop.metadata["n_shared_resources"] == len(workshop.shared_resources)

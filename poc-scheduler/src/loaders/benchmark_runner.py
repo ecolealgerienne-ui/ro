@@ -83,7 +83,9 @@ class BenchmarkRecord(BaseModel):
             "gap_percent": "" if self.gap_percent is None else f"{self.gap_percent:.2f}",
             "time_seconds": f"{self.solve_time_seconds:.2f}",
             "status": self.status.value,
-            "objective_bound": "" if self.objective_bound is None else f"{self.objective_bound:.2f}",
+            "objective_bound": ""
+            if self.objective_bound is None
+            else f"{self.objective_bound:.2f}",
         }
 
 

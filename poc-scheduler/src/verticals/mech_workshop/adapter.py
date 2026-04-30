@@ -24,11 +24,11 @@ from src.core.models import (
     SharedResourceSpec,
     WorkshopInstance,
 )
-from src.generators.distributions import (
+from src.verticals.mech_workshop.distributions import (
     DEFAULT_TRANSITION_MATRIX,
     OPERATION_FAMILY,
 )
-from src.generators.workshop_generator import SyntheticWorkshop
+from src.verticals.mech_workshop.generator import SyntheticWorkshop
 
 
 def synthetic_to_jssp_instance(

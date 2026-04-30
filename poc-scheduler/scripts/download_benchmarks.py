@@ -55,7 +55,7 @@ def _download_one(name: str, dest: Path, *, force: bool, timeout: float = 30.0) 
         return "skipped"
     url = f"{JSPLIB_RAW_BASE}/{name}"
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310 (URL constante connue)
+        with urllib.request.urlopen(url, timeout=timeout) as response:
             content = response.read()
         dest.write_bytes(content)
         return "downloaded"

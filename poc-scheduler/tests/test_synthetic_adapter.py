@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-
-from src.generators.workshop_generator import GenerationParams, generate_workshop
-from src.loaders.synthetic_adapter import synthetic_to_jssp_instance
+from src.verticals.mech_workshop.adapter import synthetic_to_jssp_instance
+from src.verticals.mech_workshop.generator import GenerationParams, generate_workshop
 
 
 def test_adapter_preserves_job_count() -> None:
@@ -82,9 +80,7 @@ def test_adapter_load_balances_across_compatible_machines() -> None:
     if len(loads) >= 2:
         max_load = max(loads)
         min_load = min(loads)
-        assert max_load <= min_load * 10, (
-            f"Charge déséquilibrée : min={min_load}, max={max_load}"
-        )
+        assert max_load <= min_load * 10, f"Charge déséquilibrée : min={min_load}, max={max_load}"
 
 
 def test_adapter_metadata_includes_source() -> None:
@@ -103,7 +99,9 @@ def test_adapter_uses_custom_name() -> None:
 
 
 def test_adapter_default_name_includes_seed() -> None:
-    params = GenerationParams(seed=99, n_machines_min=8, n_machines_max=8, n_jobs_min=10, n_jobs_max=10)
+    params = GenerationParams(
+        seed=99, n_machines_min=8, n_machines_max=8, n_jobs_min=10, n_jobs_max=10
+    )
     workshop = generate_workshop(params)
     instance = synthetic_to_jssp_instance(workshop)
     assert "99" in instance.name
@@ -132,7 +130,7 @@ def test_adapter_populates_n_operators_by_default() -> None:
 
 
 def test_adapter_populates_transition_matrix_by_default() -> None:
-    from src.generators.distributions import N_FAMILIES
+    from src.verticals.mech_workshop.distributions import N_FAMILIES
 
     params = GenerationParams(seed=42)
     workshop = generate_workshop(params)
@@ -145,7 +143,7 @@ def test_adapter_populates_transition_matrix_by_default() -> None:
 
 
 def test_adapter_assigns_family_ids_to_operations() -> None:
-    from src.generators.distributions import OPERATION_FAMILY
+    from src.verticals.mech_workshop.distributions import OPERATION_FAMILY
 
     params = GenerationParams(seed=42, n_jobs_min=20, n_jobs_max=20)
     workshop = generate_workshop(params)
@@ -159,7 +157,9 @@ def test_adapter_assigns_family_ids_to_operations() -> None:
 
 
 def test_adapter_assigns_qualified_operator_ids() -> None:
-    params = GenerationParams(seed=42, n_jobs_min=15, n_jobs_max=15, n_operators_min=5, n_operators_max=5)
+    params = GenerationParams(
+        seed=42, n_jobs_min=15, n_jobs_max=15, n_operators_min=5, n_operators_max=5
+    )
     workshop = generate_workshop(params)
     instance = synthetic_to_jssp_instance(workshop)
     for job in instance.jobs:
@@ -199,7 +199,7 @@ def test_adapter_propagates_shared_resources() -> None:
     workshop = generate_workshop(params)
     instance = synthetic_to_jssp_instance(workshop)
     assert len(instance.shared_resources) == len(workshop.shared_resources)
-    for spec, original in zip(instance.shared_resources, workshop.shared_resources):
+    for spec, original in zip(instance.shared_resources, workshop.shared_resources, strict=True):
         assert spec.resource_name == original.resource_name
         assert spec.machine_ids == original.machine_ids
         assert spec.max_concurrent == original.max_concurrent

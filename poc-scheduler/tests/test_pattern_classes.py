@@ -30,7 +30,6 @@ from src.core.pattern import (
     list_patterns,
 )
 
-
 # ---------- Registry ----------
 
 
@@ -66,15 +65,18 @@ def test_get_pattern_unknown_raises() -> None:
         get_pattern("foo_bar_baz")
 
 
-@pytest.mark.parametrize("name,expected_cls", [
-    ("no_overlap_machine", NoOverlapMachinePattern),
-    ("precedence_in_job", PrecedenceInJobPattern),
-    ("makespan_objective", MakespanObjectivePattern),
-    ("no_overlap_with_setup", SequenceDependentSetupPattern),
-    ("qualified_operator", QualifiedOperatorPattern),
-    ("shared_resource_exclusion", SharedResourceExclusionPattern),
-    ("unavailable_intervals", UnavailableIntervalsPattern),
-])
+@pytest.mark.parametrize(
+    "name,expected_cls",
+    [
+        ("no_overlap_machine", NoOverlapMachinePattern),
+        ("precedence_in_job", PrecedenceInJobPattern),
+        ("makespan_objective", MakespanObjectivePattern),
+        ("no_overlap_with_setup", SequenceDependentSetupPattern),
+        ("qualified_operator", QualifiedOperatorPattern),
+        ("shared_resource_exclusion", SharedResourceExclusionPattern),
+        ("unavailable_intervals", UnavailableIntervalsPattern),
+    ],
+)
 def test_each_pattern_in_registry(name: str, expected_cls: type[Pattern]) -> None:
     cls = PATTERNS[name]
     assert cls is expected_cls

@@ -146,9 +146,7 @@ class SequenceDependentSetupPattern(Pattern):
 
         for fid in family_ids:
             if not 0 <= fid < n_families:
-                raise ValueError(
-                    f"family_id {fid} hors borne (matrice {n_families}×{n_families})"
-                )
+                raise ValueError(f"family_id {fid} hors borne (matrice {n_families}×{n_families})")
 
         for i in range(n):
             for j in range(i + 1, n):
@@ -165,7 +163,9 @@ class QualifiedOperatorPattern(Pattern):
     """Chaque opération assignée à un opérateur qualifié unique ; pas deux ops pour un même opérateur en parallèle."""
 
     name: ClassVar[str] = "qualified_operator"
-    description: ClassVar[str] = "Affectation opérateurs qualifiés via intervals optionnels + no_overlap."
+    description: ClassVar[str] = (
+        "Affectation opérateurs qualifiés via intervals optionnels + no_overlap."
+    )
 
     def __init__(self, *, name_prefix: str = "qual") -> None:
         self.name_prefix = name_prefix
@@ -261,7 +261,9 @@ class UnavailableIntervalsPattern(Pattern):
                 raise ValueError(f"Période {k} : start ({start}) doit être < end ({end})")
             s_var = model.new_int_var(start, start, f"{self.name_prefix}_{k}_s")
             e_var = model.new_int_var(end, end, f"{self.name_prefix}_{k}_e")
-            intervals.append(model.new_interval_var(s_var, end - start, e_var, f"{self.name_prefix}_{k}_i"))
+            intervals.append(
+                model.new_interval_var(s_var, end - start, e_var, f"{self.name_prefix}_{k}_i")
+            )
         return intervals
 
 
@@ -283,9 +285,7 @@ def get_pattern(name: str) -> Pattern:
     """Instancie un pattern par son nom (lookup dans la registry)."""
     cls = PATTERNS.get(name)
     if cls is None:
-        raise KeyError(
-            f"Pattern '{name}' inconnu. Disponibles : {sorted(PATTERNS.keys())}"
-        )
+        raise KeyError(f"Pattern '{name}' inconnu. Disponibles : {sorted(PATTERNS.keys())}")
     return cls()
 
 

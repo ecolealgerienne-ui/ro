@@ -25,8 +25,12 @@ class Operation(BaseModel):
 
     job_id: int = Field(..., ge=0, description="Identifiant du job parent (0-indexé)")
     sequence_idx: int = Field(..., ge=0, description="Position dans la gamme du job (0-indexé)")
-    machine_id: int = Field(..., ge=0, description="Machine sur laquelle l'opération s'exécute (0-indexé)")
-    duration: int = Field(..., ge=0, description="Durée d'exécution (unités cohérentes avec l'instance)")
+    machine_id: int = Field(
+        ..., ge=0, description="Machine sur laquelle l'opération s'exécute (0-indexé)"
+    )
+    duration: int = Field(
+        ..., ge=0, description="Durée d'exécution (unités cohérentes avec l'instance)"
+    )
 
     # Champs industriels (étape 1.1b) — neutres par défaut
     family_id: int = Field(

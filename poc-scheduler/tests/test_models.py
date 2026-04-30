@@ -197,7 +197,7 @@ def test_shared_resource_must_reference_existing_machines() -> None:
 
 
 def test_machine_unavailability_validates_periods() -> None:
-    with pytest.raises(ValidationError, match="start.*<.*end"):
+    with pytest.raises(ValidationError, match=r"start.*<.*end"):
         MachineUnavailabilitySpec(machine_id=0, periods=[(10, 5)])
     with pytest.raises(ValidationError, match="négatives"):
         MachineUnavailabilitySpec(machine_id=0, periods=[(-1, 5)])
@@ -210,9 +210,7 @@ def test_machine_unavailability_rejects_unknown_machine() -> None:
             name="test",
             jobs=[job],
             machines=[machine],
-            machine_unavailability=[
-                MachineUnavailabilitySpec(machine_id=99, periods=[(0, 10)])
-            ],
+            machine_unavailability=[MachineUnavailabilitySpec(machine_id=99, periods=[(0, 10)])],
         )
 
 

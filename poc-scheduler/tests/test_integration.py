@@ -10,9 +10,9 @@ import time
 
 import pytest
 
-from src.core.solver import JSSPSolver, SolverStatus, validate_schedule
-from src.generators.workshop_generator import GenerationParams, generate_workshop
-from src.loaders.synthetic_adapter import synthetic_to_jssp_instance
+from src.core.solver import JSSPSolver, validate_schedule
+from src.verticals.mech_workshop.adapter import synthetic_to_jssp_instance
+from src.verticals.mech_workshop.generator import GenerationParams, generate_workshop
 
 
 def _e2e(params: GenerationParams, time_limit: float = 10.0, num_workers: int = 4):
@@ -111,8 +111,7 @@ def test_e2e_realistic_workshop_under_60_seconds() -> None:
     _, instance, result = _e2e(params, time_limit=60.0, num_workers=8)
     elapsed = time.perf_counter() - t0
     assert result.has_solution, (
-        f"Pas de solution sur 15×80 en 60s : {result.status} "
-        f"(elapsed {elapsed:.1f}s)"
+        f"Pas de solution sur 15×80 en 60s : {result.status} (elapsed {elapsed:.1f}s)"
     )
     errors = validate_schedule(instance, result.schedule)
     assert not errors
@@ -147,7 +146,9 @@ def test_e2e_with_full_patterns_active() -> None:
 
 def test_solver_records_patterns_applied() -> None:
     """Le SolverResult expose la liste des patterns activés."""
-    params = GenerationParams(seed=42, n_machines_min=5, n_machines_max=5, n_jobs_min=10, n_jobs_max=10)
+    params = GenerationParams(
+        seed=42, n_machines_min=5, n_machines_max=5, n_jobs_min=10, n_jobs_max=10
+    )
     workshop = generate_workshop(params)
     instance = synthetic_to_jssp_instance(workshop)
     solver = JSSPSolver(time_limit_seconds=10.0, num_workers=2)
@@ -163,7 +164,9 @@ def test_solver_records_patterns_applied() -> None:
 
 def test_solver_skips_patterns_when_disabled() -> None:
     """Avec adaptateur en mode dégradé, seuls NoOverlap+Precedence+Makespan."""
-    params = GenerationParams(seed=42, n_machines_min=5, n_machines_max=5, n_jobs_min=10, n_jobs_max=10)
+    params = GenerationParams(
+        seed=42, n_machines_min=5, n_machines_max=5, n_jobs_min=10, n_jobs_max=10
+    )
     workshop = generate_workshop(params)
     instance = synthetic_to_jssp_instance(
         workshop,
@@ -204,7 +207,9 @@ def test_e2e_with_unavailability() -> None:
     """Atelier avec une plage d'indisponibilité explicite — solveur la respecte."""
     from src.core.models import MachineUnavailabilitySpec
 
-    params = GenerationParams(seed=42, n_machines_min=5, n_machines_max=5, n_jobs_min=8, n_jobs_max=8)
+    params = GenerationParams(
+        seed=42, n_machines_min=5, n_machines_max=5, n_jobs_min=8, n_jobs_max=8
+    )
     workshop = generate_workshop(params)
     instance = synthetic_to_jssp_instance(workshop)
 

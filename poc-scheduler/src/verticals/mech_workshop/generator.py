@@ -20,7 +20,7 @@ import numpy as np
 from numpy.random import Generator
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from src.generators.distributions import (
+from src.verticals.mech_workshop.distributions import (
     CLIENT_NAMES_BY_TIER,
     CLIENT_TIER_WEIGHT,
     CLIENT_TIERS,
@@ -31,7 +31,6 @@ from src.generators.distributions import (
     OPERATION_MACHINE_COMPAT,
     OPERATIONS_CANONICAL,
 )
-
 
 # ---------- Paramètres de génération ----------
 
@@ -278,7 +277,7 @@ def _generate_operators(
     for i in range(n):
         # Polyvalence variable : 30-90% des opérations réalisables maîtrisées
         coverage = float(rng.uniform(0.3, 0.9))
-        n_qual = max(1, int(round(coverage * len(feasible_ops))))
+        n_qual = max(1, round(coverage * len(feasible_ops)))
         qualifications = list(rng.choice(feasible_ops, size=n_qual, replace=False))
         operators.append(
             SyntheticOperator(
@@ -365,7 +364,7 @@ def _sample_duration(rng: Generator, op_type: str, material_multiplier: float) -
     sigma = float(np.sqrt(np.log(1.0 + (std / mean) ** 2)))
     mu = float(np.log(mean) - 0.5 * sigma**2)
     sample = float(rng.lognormal(mu, sigma))
-    return max(1, int(round(sample)))
+    return max(1, round(sample))
 
 
 # ---------- Génération des ressources partagées ----------
@@ -403,7 +402,9 @@ def _maybe_generate_shared_resources(
 
     upper = min(params.shared_resource_max_machines, len(machines))
     n_concerned = int(rng.integers(params.shared_resource_min_machines, upper + 1))
-    chosen_ids = sorted(rng.choice([m.machine_id for m in machines], size=n_concerned, replace=False).tolist())
+    chosen_ids = sorted(
+        rng.choice([m.machine_id for m in machines], size=n_concerned, replace=False).tolist()
+    )
     name = str(rng.choice(_SHARED_RESOURCE_NAMES))
     max_concurrent = min(params.shared_resource_max_concurrent, max(1, n_concerned - 1))
     return [

@@ -44,7 +44,9 @@ def parse_taillard_file(path: Path) -> WorkshopInstance:
         raise FileNotFoundError(f"Fichier Taillard introuvable : {path}")
 
     raw_lines = path.read_text(encoding="utf-8").splitlines()
-    cleaned = [line.strip() for line in raw_lines if line.strip() and not line.strip().startswith("+")]
+    cleaned = [
+        line.strip() for line in raw_lines if line.strip() and not line.strip().startswith("+")
+    ]
 
     if not cleaned:
         raise ValueError(f"Fichier vide ou uniquement des en-têtes : {path}")
@@ -207,7 +209,10 @@ def load_taillard_instance(name: str, data_dir: Path) -> WorkshopInstance:
             row = all_meta[name]
             best_known_str = row.get("best_known_makespan", "").strip()
             best_known = int(best_known_str) if best_known_str else None
-            enriched_metadata = {**instance.metadata, **{k: v for k, v in row.items() if k != "name"}}
+            enriched_metadata = {
+                **instance.metadata,
+                **{k: v for k, v in row.items() if k != "name"},
+            }
             return instance.model_copy(
                 update={"best_known_makespan": best_known, "metadata": enriched_metadata}
             )

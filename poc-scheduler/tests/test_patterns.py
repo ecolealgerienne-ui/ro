@@ -16,7 +16,6 @@ from src.core.patterns import (
     make_makespan_objective,
 )
 
-
 # ----- add_no_overlap_machine -----
 
 
@@ -402,9 +401,7 @@ def test_qualified_operator_validates_lengths() -> None:
     s = model.new_int_var(0, 10, "s")
     e = model.new_int_var(0, 10, "e")
     with pytest.raises(ValueError, match="même longueur"):
-        add_qualified_operator_constraint(
-            model, [s], [e, e], [5], [[0]], n_operators=1
-        )
+        add_qualified_operator_constraint(model, [s], [e, e], [5], [[0]], n_operators=1)
 
 
 def test_qualified_operator_rejects_empty_qualifications() -> None:
@@ -570,9 +567,9 @@ def test_unavailable_rejects_invalid_period() -> None:
     from src.core.patterns import make_unavailable_intervals
 
     model = cp_model.CpModel()
-    with pytest.raises(ValueError, match="start.*<.*end"):
+    with pytest.raises(ValueError, match=r"start.*<.*end"):
         make_unavailable_intervals(model, [(10, 5)])
-    with pytest.raises(ValueError, match="start.*<.*end"):
+    with pytest.raises(ValueError, match=r"start.*<.*end"):
         make_unavailable_intervals(model, [(5, 5)])
     with pytest.raises(ValueError, match="négatives"):
         make_unavailable_intervals(model, [(-1, 5)])

@@ -133,9 +133,7 @@ class PreflightReport(BaseModel):
         # Erreur globale fichier (colonne requise manquante) traitée avant "aucune ligne valide"
         # car le message est plus actionnable pour l'utilisateur.
         global_blocking = [
-            e
-            for e in self.errors
-            if e.severity == Severity.BLOCKING and e.row_index is None
+            e for e in self.errors if e.severity == Severity.BLOCKING and e.row_index is None
         ]
         if global_blocking:
             return False, f"Erreur globale fichier : {global_blocking[0].description}"

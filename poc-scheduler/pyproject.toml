@@ -51,7 +51,13 @@ select = [
     "SIM", # flake8-simplify
     "RUF", # ruff-specific
 ]
-ignore = ["E501"]
+ignore = [
+    "E501",  # ligne trop longue : géré par le formatter
+    # Typographie française tolérée dans les docstrings/commentaires :
+    "RUF001", # ambiguous string char (× dans "5×5", – dans listes)
+    "RUF002", # ambiguous docstring char (idem)
+    "RUF003", # ambiguous comment char (idem)
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "N802"]
