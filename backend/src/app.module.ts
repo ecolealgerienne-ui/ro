@@ -5,6 +5,7 @@ import { HealthModule } from './health/health.module';
 import { MachinesModule } from './machines/machines.module';
 import { OrdersModule } from './orders/orders.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { SolveJobsModule } from './solve-jobs/solve-jobs.module';
 import { VersionsModule } from './versions/versions.module';
 import { WorkshopsModule } from './workshops/workshops.module';
 
@@ -21,6 +22,7 @@ import { WorkshopsModule } from './workshops/workshops.module';
     MachinesModule,
     ClientsModule,
     OrdersModule,
+    SolveJobsModule,
   ],
 })
 export class AppModule {}
