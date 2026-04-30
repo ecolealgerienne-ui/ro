@@ -1,0 +1,391 @@
+// Schéma Prisma — backend ro (Phase 4 V1, single-tenant).
+//
+// Modèle de données aligné avec :
+//  - poc-scheduler/src/core/models.py (Pydantic engine)
+//  - specs-techniques-v3.md §3.2 (modèle de données SaaS)
+//
+// V1 : single-tenant (un atelier par instance Docker). Les colonnes
+// `tenant_id` ne sont pas ajoutées V1 mais le schéma est conçu pour les
+// accueillir Phase 7 sécurité prod (cf. CONTRIBUTING.md §8 + Phase 4.2 spec).
+//
+// Conventions de naming :
+//  - tables au pluriel snake_case (workshops, solve_jobs)
+//  - colonnes camelCase côté Prisma client, snake_case en DB via @map
+//  - identifiants UUID v7 (lisible + ordonné chronologiquement) générés DB-side
+//  - timestamps `createdAt` / `updatedAt` cohérents partout
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================================
+// Atelier — entité racine V1 (un atelier = un client design partner)
+// =====================================================================
+
+model Workshop {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  city           String?
+  certifications String[] @default([]) // ex: ["EN 9100", "IATF 16949"]
+  shiftStart     Int      @default(360) @map("shift_start_minutes") // 6h00 = 360 min
+  shiftEnd       Int      @default(1320) @map("shift_end_minutes") // 22h00 = 1320 min
+  workdays       Int[]    @default([1, 2, 3, 4, 5]) // ISO weekday : 1=lundi
+  nOperators     Int      @default(0) @map("n_operators")
+
+  // Setup-dependent (1.1) : matrice de transition inter-familles, optionnelle
+  transitionMatrix Json? @map("transition_matrix") // int[][]  ou null
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  machines          Machine[]
+  operators         Operator[]
+  sharedRes         SharedResource[]
+  unavailability    MachineUnavailability[]
+  clients           Client[]
+  orders            Order[]
+  softConstraints   SoftConstraint[]
+  versions          Version[]
+  solveJobs         SolveJob[]
+  preflightSessions PreflightSession[]
+
+  @@map("workshops")
+}
+
+// =====================================================================
+// Ressources de l'atelier
+// =====================================================================
+
+model Machine {
+  id           String   @id @default(uuid()) @db.Uuid
+  workshopId   String   @map("workshop_id") @db.Uuid
+  // Index entier 0-N stable pour le solveur (correspondance src.core.models.Machine.machine_id)
+  machineIdInt Int      @map("machine_id_int")
+  name         String
+  type         String? // "Tour CN", "Fraiseuse", "Rectifieuse"...
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  workshop       Workshop                @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  unavailability MachineUnavailability[]
+  operations     Operation[]
+
+  @@unique([workshopId, machineIdInt])
+  @@index([workshopId])
+  @@map("machines")
+}
+
+model Operator {
+  id                String   @id @default(uuid()) @db.Uuid
+  workshopId        String   @map("workshop_id") @db.Uuid
+  // Index entier 0-N stable pour le solveur
+  operatorIdInt     Int      @map("operator_id_int")
+  name              String
+  // Liste des `machine_id_int` que cet opérateur peut tenir
+  qualifiedMachines Int[]    @default([]) @map("qualified_machines")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  @@unique([workshopId, operatorIdInt])
+  @@index([workshopId])
+  @@map("operators")
+}
+
+model SharedResource {
+  id            String   @id @default(uuid()) @db.Uuid
+  workshopId    String   @map("workshop_id") @db.Uuid
+  resourceName  String   @map("resource_name") // "cabine_metrologie", ...
+  machineIdsInt Int[]    @map("machine_ids_int") // liste des machine_id_int couverts
+  maxConcurrent Int      @map("max_concurrent")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  @@unique([workshopId, resourceName])
+  @@map("shared_resources")
+}
+
+model MachineUnavailability {
+  id         String   @id @default(uuid()) @db.Uuid
+  workshopId String   @map("workshop_id") @db.Uuid
+  machineId  String   @map("machine_id") @db.Uuid
+  // Périodes au format JSON : list[(start_min, end_min)] cohérent avec src.core.models
+  periods    Json
+  reason     String? // ex: "maintenance préventive", "weekend", "audit Safran"
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  machine  Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@index([workshopId])
+  @@index([machineId])
+  @@map("machine_unavailability")
+}
+
+// =====================================================================
+// Donneurs d'ordre + ordres de fabrication
+// =====================================================================
+
+model Client {
+  id             String   @id @default(uuid()) @db.Uuid
+  workshopId     String   @map("workshop_id") @db.Uuid
+  name           String
+  tier           Int      @default(2) // 1 = critique, 2 = standard, 3 = opportuniste
+  certifications String[] @default([])
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  orders   Order[]
+
+  @@unique([workshopId, name])
+  @@map("clients")
+}
+
+enum OrderStatus {
+  pending // importé, pas encore planifié
+  planned // assigné dans une version active
+  in_progress // en cours d'usinage (gelé par freeze 8h)
+  done
+  cancelled
+}
+
+model Order {
+  id           String      @id @default(uuid()) @db.Uuid
+  workshopId   String      @map("workshop_id") @db.Uuid
+  clientId     String      @map("client_id") @db.Uuid
+  // Identifiant métier visible (ex: OF-2026-0847) — unique par workshop
+  orderRef     String      @map("order_ref")
+  partRef      String      @map("part_ref")
+  partFamilyId Int?        @map("part_family_id") // index dans la matrice transition
+  quantity     Int         @default(1)
+  deadline     DateTime?
+  status       OrderStatus @default(pending)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  job      Job? // 1 ordre = 1 job (gamme), V1
+
+  @@unique([workshopId, orderRef])
+  @@index([workshopId, status])
+  @@map("orders")
+}
+
+model Job {
+  id          String   @id @default(uuid()) @db.Uuid
+  orderId     String   @unique @map("order_id") @db.Uuid
+  // Index entier 0-N stable pour le solveur
+  jobIdInt    Int      @map("job_id_int")
+  // Tier de criticité hérité du client mais surchargeable au niveau OF
+  criticality Int? // 1 / 2 / 3 / null
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  operations Operation[]
+
+  @@map("jobs")
+}
+
+model Operation {
+  id                   String   @id @default(uuid()) @db.Uuid
+  jobId                String   @map("job_id") @db.Uuid
+  sequenceIdx          Int      @map("sequence_idx")
+  machineId            String   @map("machine_id") @db.Uuid
+  durationMin          Int      @map("duration_min") // minutes (cohérent avec horizon engine)
+  familyId             Int      @default(0) @map("family_id")
+  qualifiedOperatorIds Int[]    @default([]) @map("qualified_operator_ids")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  machine Machine @relation(fields: [machineId], references: [id], onDelete: Restrict)
+
+  @@unique([jobId, sequenceIdx])
+  @@index([machineId])
+  @@map("operations")
+}
+
+// =====================================================================
+// Soft constraints (Phase 1.6 + 3.6)
+// =====================================================================
+
+model SoftConstraint {
+  id         String   @id @default(uuid()) @db.Uuid
+  workshopId String   @map("workshop_id") @db.Uuid
+  // Catégorie canonique reconnue par l'agent 3.6 + les translators 1.6
+  category   String // "tardiness_per_job", "prefer_grouping_by_material", ...
+  parameters Json     @default("{}")
+  weightHint Float    @default(0.5) @map("weight_hint")
+  // Texte original NL fourni par le chef d'atelier (audit / re-parse)
+  rawNlText  String?  @map("raw_nl_text")
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  @@index([workshopId, enabled])
+  @@map("soft_constraints")
+}
+
+// =====================================================================
+// Versioning (Phase 4.5) — chaque modification = une nouvelle version
+// =====================================================================
+
+model Version {
+  id              String   @id @default(uuid()) @db.Uuid
+  workshopId      String   @map("workshop_id") @db.Uuid
+  // Numéro lisible auto-incrémenté par workshop (v1, v2, v3...)
+  versionNumber   Int      @map("version_number")
+  parentVersionId String?  @map("parent_version_id") @db.Uuid
+  message         String
+  author          String // "Pierre M." | "auto-replan" | etc.
+  // Snapshot complet du WorkshopInstance sérialisé (Pydantic .model_dump()).
+  // V1 : on stocke le snapshot pour audit + rollback. V2 : on pourrait éclater
+  // en tables relationnelles versionnées si la taille devient problématique.
+  snapshot        Json
+  isActive        Boolean  @default(false) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  workshop      Workshop   @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  parentVersion Version?   @relation("VersionLineage", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  childVersions Version[]  @relation("VersionLineage")
+  solveJobs     SolveJob[]
+  schedule      Schedule?
+
+  @@unique([workshopId, versionNumber])
+  @@index([workshopId, isActive])
+  @@map("versions")
+}
+
+// =====================================================================
+// Solve jobs (Phase 4.7) — DB-as-queue pour les solves Python
+// =====================================================================
+
+enum SolveJobStatus {
+  pending
+  running
+  done
+  failed
+  cancelled
+}
+
+model SolveJob {
+  id                String         @id @default(uuid()) @db.Uuid
+  workshopId        String         @map("workshop_id") @db.Uuid
+  versionId         String?        @map("version_id") @db.Uuid
+  status            SolveJobStatus @default(pending)
+  // Configuration solve : budget temps, soft constraints actives, freeze, hint, ...
+  config            Json           @default("{}")
+  // Résultat Pydantic SolverResult.model_dump() côté Python
+  result            Json?
+  // Score de confiance + verdict simulation (peuplés post-solve)
+  confidenceScore   Int?           @map("confidence_score")
+  simulationVerdict String?        @map("simulation_verdict") // ACCEPT / WARN / REJECT
+  errorMessage      String?        @map("error_message")
+  // Trace pour debug / observabilité
+  attempts          Int            @default(0)
+  startedAt         DateTime?      @map("started_at")
+  finishedAt        DateTime?      @map("finished_at")
+  // Pour le worker Python : pid + heartbeat pour détecter les workers morts
+  workerId          String?        @map("worker_id")
+  heartbeatAt       DateTime?      @map("heartbeat_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  version  Version? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+
+  // Index critique : le worker poll les pending par createdAt asc.
+  @@index([status, createdAt])
+  @@index([workshopId, status])
+  @@map("solve_jobs")
+}
+
+// =====================================================================
+// Schedule = résultat planifié d'une Version
+// =====================================================================
+
+model Schedule {
+  id          String   @id @default(uuid()) @db.Uuid
+  versionId   String   @unique @map("version_id") @db.Uuid
+  makespanMin Int      @map("makespan_min")
+  // Snapshot de toutes les ScheduleAssignment (job_id, sequence_idx, machine, start, end)
+  // V1 : JSON. V2 : éclater en table si on veut faire des requêtes par OF.
+  assignments Json
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  version Version @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@map("schedules")
+}
+
+// =====================================================================
+// Data Quality (Phase 4.8) — anomalies détectées au pre-flight
+// =====================================================================
+
+enum AnomalyLevel {
+  certain // niveau 1 : bloquant
+  probable // niveau 2 : à valider
+  surprising // niveau 3 : ack only
+}
+
+enum AnomalyStatus {
+  pending // pas encore traité
+  resolved // l'utilisateur a corrigé / accepté
+  ignored // l'utilisateur a explicitement passé outre
+  excluded // ligne exclue de l'import
+}
+
+model PreflightSession {
+  id            String    @id @default(uuid()) @db.Uuid
+  workshopId    String    @map("workshop_id") @db.Uuid
+  fileName      String    @map("file_name")
+  fileHash      String?   @map("file_hash") // sha256 pour audit
+  nRowsTotal    Int       @map("n_rows_total")
+  nRowsImported Int       @default(0) @map("n_rows_imported")
+  importedAt    DateTime  @default(now()) @map("imported_at")
+  closedAt      DateTime? @map("closed_at")
+
+  workshop  Workshop  @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  anomalies Anomaly[]
+
+  @@index([workshopId])
+  @@map("preflight_sessions")
+}
+
+model Anomaly {
+  id         String        @id @default(uuid()) @db.Uuid
+  sessionId  String        @map("session_id") @db.Uuid
+  level      AnomalyLevel
+  // Code stable pour grouper / filtrer ("negative_duration", "unknown_client", ...)
+  code       String
+  // Pointe sur la ligne CSV (1-indexed) et la colonne en cause si applicable
+  rowIndex   Int           @map("row_index")
+  column     String?
+  rawValue   String?       @map("raw_value")
+  // Suggestion automatique du système (fuzzy match, valeur corrigée probable)
+  suggestion String?
+  status     AnomalyStatus @default(pending)
+  resolution String? // ce que l'utilisateur a fait
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+
+  session PreflightSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, level, status])
+  @@map("anomalies")
+}
