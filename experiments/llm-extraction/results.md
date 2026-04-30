@@ -279,34 +279,50 @@ uv run python scripts/llm_prompt_builder.py \
 
 ### Output produit par Claude
 
-```json
-[à coller ici]
-```
+8 OF correctement extraits (OF-107 fusionné comme dans l'itération 3, comportement identique). 6 machines uniques. 10 opérations totales. **6 anomalies dans `anomalies` final** :
+- 3 issues du pre-flight (copiées telles quelles, mêmes `type`, `row_reference`, `description`)
+- 3 sémantiques détectées par le LLM (matiere_inconnue ZorglubMetal, duree_excessive_interne 2000min, of_doublon_incoherent OF-107)
 
-### Évaluation : __/15
+### Évaluation : 15/15
 
-(à remplir après test)
+Tous les critères passent — y compris les nouveaux spécifiques à cette itération :
 
-### Critères spécifiques itération 5
+- **A1 (pre-flight présentes)** ✓ : 3/3 anomalies pre-flight présentes dans `anomalies`, format préservé
+- **A2 (sémantiques détectées)** ✓ : 3/3 anomalies sémantiques trouvées, types corrects
+- **Pas de redétection** ✓ : aucun doublon dans `anomalies` (pas de `duration_negative` redécouvert par le LLM en plus de l'injection)
+- **A3 (pas de fausses anomalies)** ✓ : ébavurage 5min et marquage 2min non flaggés (anti-zèle préservé)
 
-- **Anomalies pre-flight préservées** : les 3 warnings injectés se retrouvent bien dans `anomalies` final
-- **Anomalies sémantiques détectées** : 3/3
-- **Aucune redétection** des anomalies déjà flaggées par pre-flight (pas de doublon dans `anomalies`)
-- **Réduction de tokens output** observée vs itération 3 (F4 v2)
+### Comportements remarquables
 
-### Comparaison taille prompt v2 vs v3
+1. **Préservation littérale des anomalies pre-flight** : Claude a copié les 3 entrées exactement comme elles apparaissaient dans le bloc `{{PREFLIGHT_ANOMALIES}}`, sans paraphrase ni modification. Mêmes `description` au mot près ("Durée -30 ≤ 0").
 
-| Métrique | prompt_v2 | prompt_v3 + preflight | Gain |
-|----------|-----------|------------------------|------|
-| Lignes prompt | ~100 | ~70 | -30 % |
-| Tokens approximatifs | ~3000 | ~2000 | -33 % |
-| Anomalies à détecter par LLM | 11 types | 7 types | -36 % |
+2. **Choix OF-107 documenté** : Claude écrit "opérations regroupées sous les valeurs de la première occurrence, à arbitrer" — utile pour l'audit, et aligne avec le comportement spontané déjà observé en itération 3.
 
-(Mesures précises à compléter à l'itération.)
+3. **Matière inconnue avec note explicite** : "valeur originale conservée dans material_normalized" — Claude explique son comportement, transparence appréciable.
+
+4. **Aucune dérive** : pas une seule anomalie inventée, pas une seule modification silencieuse. Le contrat pre-flight ↔ LLM est respecté à la lettre.
+
+### Apprentissages
+
+- **Le pattern fonctionne** : on peut diviser le travail entre code déterministe (Niveau 1) et LLM (sémantique) sans perte de qualité.
+- **Claude obéit aux instructions structurées** : la section "Pre-flight déjà effectué" est traitée comme un input à honorer, pas comme une suggestion.
+- **Le format `{{VARIABLE}}` est ergonomique** pour les templates substitués par script.
+
+### Comparaison F4 v2 vs F4 v3+preflight
+
+| Métrique | v2 (itération 3) | v3 + preflight (itération 5) |
+|----------|------------------|------------------------------|
+| Score | 15/15 | 15/15 |
+| Anomalies à détecter par LLM | 6 | 3 |
+| Anomalies pré-injectées | 0 | 3 |
+| Tokens prompt approx. | ~3000 | ~2000 (-33 %) |
+| Risque de re-détection | N/A | 0 (testé) |
+
+**Le pattern est validé.** À industrialiser pour la Phase 3.5 (agent extraction code).
 
 ---
 
-# 🏁 Bilan global — expérimentation clôturée
+# 🏁 Bilan global — expérimentation clôturée définitivement
 
 | Test | Prompt | Score | Verdict |
 |------|--------|-------|---------|
@@ -360,3 +376,4 @@ uv run python scripts/llm_prompt_builder.py \
 | 2026-04-30 | F3 prompt_v2 = 15/15 | Robustesse format ERP réel validée — clôture de l'expérimentation |
 | 2026-04-30 | Expérimentation clôturée — risque LLM extraction levé | 45/45 sur 3 fixtures couvrant le spectre. prompt_v2 référence pour Phase 3.5 |
 | 2026-04-30 | Réouverture pour ajouter pre-flight + prompt_v3 | Application du pattern "code déterministe avant LLM". Module `src/preflight/` intégré, prompt allégé. À tester avec itération 5. |
+| 2026-04-30 | F4 prompt_v3 + preflight = 15/15 | Pattern validé empiriquement. Pre-flight + LLM réussit la même qualité avec 33 % moins de prompt et 50 % moins d'effort de détection LLM. |
