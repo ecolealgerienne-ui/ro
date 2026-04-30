@@ -1,0 +1,16 @@
+OF;Client;Piece;Matiere;Operation;Machine;Duree_min;Date_livraison
+OF-2026-001;Safran;Bague_pivot;Aluminium 7075;Tournage ebauche;TOUR-01;45;2026-05-15
+OF-2026-001;Safran;Bague_pivot;Aluminium 7075;Tournage finition;TOUR-01;30;2026-05-15
+OF-2026-001;Safran;Bague_pivot;Aluminium 7075;Controle 3D;CMM-01;15;2026-05-15
+OF-2026-002;PSA;Support_capteur;Acier 42CrMo4;Fraisage ebauche;FRAIS-02;55;2026-05-12
+OF-2026-002;PSA;Support_capteur;Acier 42CrMo4;Percage;PERC-01;10;2026-05-12
+OF-2026-002;PSA;Support_capteur;Acier 42CrMo4;Ebavurage;FRAIS-02;5;2026-05-12
+OF-2026-003;Safran;Embase_moteur;Titane TA6V;Fraisage 5 axes;FRAIS-5X-01;120;2026-05-20
+OF-2026-003;Safran;Embase_moteur;Titane TA6V;Controle 3D;CMM-01;25;2026-05-20
+OF-2026-004;Liebherr;Axe_pivot;Inox 316L;Tournage ebauche;TOUR-02;35;2026-05-18
+OF-2026-004;Liebherr;Axe_pivot;Inox 316L;Tournage finition;TOUR-02;20;2026-05-18
+OF-2026-004;Liebherr;Axe_pivot;Inox 316L;Rectification cylindrique;RECT-01;30;2026-05-18
+OF-2026-005;PSA;Plaque_support;Aluminium 7075;Fraisage finition;FRAIS-01;35;2026-05-14
+OF-2026-005;PSA;Plaque_support;Aluminium 7075;Percage;PERC-01;8;2026-05-14
+OF-2026-005;PSA;Plaque_support;Aluminium 7075;Marquage;FRAIS-01;3;2026-05-14
+OF-2026-005;PSA;Plaque_support;Aluminium 7075;Controle 3D;CMM-01;12;2026-05-14
