@@ -1,0 +1,32 @@
+id: baseline_001_jssp_3x3
+description: >-
+  JSSP 3 jobs x 3 machines, gammes circulaires, toutes durees = 3.
+  Cas archetypal : optimum connu = 9 (chaque machine occupee a 100 %).
+category: baseline_jssp
+instance:
+  name: golden_baseline_001_jssp_3x3
+  jobs:
+    - job_id: 0
+      operations:
+        - {job_id: 0, sequence_idx: 0, machine_id: 0, duration: 3}
+        - {job_id: 0, sequence_idx: 1, machine_id: 1, duration: 3}
+        - {job_id: 0, sequence_idx: 2, machine_id: 2, duration: 3}
+    - job_id: 1
+      operations:
+        - {job_id: 1, sequence_idx: 0, machine_id: 1, duration: 3}
+        - {job_id: 1, sequence_idx: 1, machine_id: 2, duration: 3}
+        - {job_id: 1, sequence_idx: 2, machine_id: 0, duration: 3}
+    - job_id: 2
+      operations:
+        - {job_id: 2, sequence_idx: 0, machine_id: 2, duration: 3}
+        - {job_id: 2, sequence_idx: 1, machine_id: 0, duration: 3}
+        - {job_id: 2, sequence_idx: 2, machine_id: 1, duration: 3}
+  machines:
+    - {machine_id: 0}
+    - {machine_id: 1}
+    - {machine_id: 2}
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 9
+  makespan_max: 9
+  solve_time_s_max: 5.0

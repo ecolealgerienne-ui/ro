@@ -1,0 +1,26 @@
+id: setup_001_two_families
+description: >-
+  Setup-dependent : 1 machine, 2 jobs avec familles differentes.
+  J1 (fam1, dur 4) -> transition 3 -> J0 (fam0, dur 3) = makespan 10.
+  L'ordre inverse couterait 12 (transition 0->1 = 5).
+  Verifie que le solveur trouve le bon ordre.
+category: setup
+instance:
+  name: golden_setup_001_two_families
+  jobs:
+    - job_id: 0
+      operations:
+        - {job_id: 0, sequence_idx: 0, machine_id: 0, duration: 3, family_id: 0}
+    - job_id: 1
+      operations:
+        - {job_id: 1, sequence_idx: 0, machine_id: 0, duration: 4, family_id: 1}
+  machines:
+    - {machine_id: 0}
+  transition_matrix:
+    - [0, 5]
+    - [3, 0]
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 10
+  makespan_max: 10
+  solve_time_s_max: 5.0

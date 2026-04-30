@@ -1,0 +1,28 @@
+id: shared_resource_001_capacity_one
+description: >-
+  Shared resource (ex: pont roulant unique) limitant 2 machines a 1 op
+  active simultanement. Deux jobs de duree 5 sur 2 machines distinctes :
+  sans la ressource partagee, optimum = 5 ; avec max_concurrent=1, force
+  une serialisation -> optimum = 10.
+category: shared_resource
+instance:
+  name: golden_shared_resource_001_capacity_one
+  jobs:
+    - job_id: 0
+      operations:
+        - {job_id: 0, sequence_idx: 0, machine_id: 0, duration: 5}
+    - job_id: 1
+      operations:
+        - {job_id: 1, sequence_idx: 0, machine_id: 1, duration: 5}
+  machines:
+    - {machine_id: 0}
+    - {machine_id: 1}
+  shared_resources:
+    - resource_name: crane_unique
+      machine_ids: [0, 1]
+      max_concurrent: 1
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 10
+  makespan_max: 10
+  solve_time_s_max: 5.0

@@ -1,0 +1,26 @@
+id: calendar_001_machine_off
+description: >-
+  Calendrier : 1 machine indisponible sur [5, 8]. Deux jobs (dur 5 chacun)
+  sur cette machine. Schedule force : J0 [0, 5], indispo [5, 8], J1 [8, 13].
+  Optimum = 13.
+category: calendar
+instance:
+  name: golden_calendar_001_machine_off
+  jobs:
+    - job_id: 0
+      operations:
+        - {job_id: 0, sequence_idx: 0, machine_id: 0, duration: 5}
+    - job_id: 1
+      operations:
+        - {job_id: 1, sequence_idx: 0, machine_id: 0, duration: 5}
+  machines:
+    - {machine_id: 0}
+  machine_unavailability:
+    - machine_id: 0
+      periods:
+        - [5, 8]
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 13
+  makespan_max: 13
+  solve_time_s_max: 5.0

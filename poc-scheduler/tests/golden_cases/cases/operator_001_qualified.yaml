@@ -1,0 +1,33 @@
+id: operator_001_qualified
+description: >-
+  Qualified operator : 2 machines paralleles, 2 jobs (dur 5).
+  Les deux ops requierent l'unique operateur 0 -> serialisation forcee
+  malgre la disponibilite des deux machines. Optimum = 10.
+  Sans contrainte operateur, optimum serait 5 (parallele).
+category: operator
+instance:
+  name: golden_operator_001_qualified
+  jobs:
+    - job_id: 0
+      operations:
+        - job_id: 0
+          sequence_idx: 0
+          machine_id: 0
+          duration: 5
+          qualified_operator_ids: [0]
+    - job_id: 1
+      operations:
+        - job_id: 1
+          sequence_idx: 0
+          machine_id: 1
+          duration: 5
+          qualified_operator_ids: [0]
+  machines:
+    - {machine_id: 0}
+    - {machine_id: 1}
+  n_operators: 1
+expected:
+  status_in: [OPTIMAL]
+  makespan_min: 10
+  makespan_max: 10
+  solve_time_s_max: 5.0
