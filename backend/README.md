@@ -20,7 +20,14 @@ observabilité prod (Phase 7).
 partners, le poll 2 s suffit ; migration vers vraie queue déférable
 (LISTEN/NOTIFY Postgres en option intermédiaire).
 
-Détails complets : [`../phase-4-report.md`](../phase-4-report.md).
+**Retro-fits Phase 5** (frontend Next.js consommateur) :
+- `enableCors()` avec env `CORS_ORIGIN` (défaut `http://localhost:3001`) pour
+  autoriser les requêtes cross-origin du frontend.
+- Nouveau module `schedules` avec endpoint `GET /api/workshops/:wId/schedule`
+  pour exposer le résultat planifié du worker Python au Gantt frontend.
+
+Détails complets : [`../phase-4-report.md`](../phase-4-report.md) +
+[`../phase-5-report.md`](../phase-5-report.md) (jalon J3 retro-fit).
 
 ## Stack
 
@@ -90,6 +97,11 @@ Toutes les routes sont préfixées `/api`.
 | GET | `/workshops/:wId/versions` | Liste versions (DESC, sans snapshot) |
 | GET | `/workshops/:wId/versions/:n` | Détail v`n` (avec snapshot) |
 | POST | `/workshops/:wId/versions/:n/rollback` | Crée une nouvelle version au sommet avec le snapshot de v`n` |
+
+### Schedule (résultat planifié — retro-fit Phase 5 J3)
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/workshops/:wId/schedule?versionId=...` | Schedule de la version active (défaut) ou spécifique. Retourne 200 + `null` si pas encore solvé, 404 si version invalide. |
 
 ### Solve jobs (DB-as-queue → worker Python J4)
 | Méthode | Route | Description |
@@ -226,12 +238,15 @@ Couverture e2e (jalon J3 + tests cross-cutting) :
 | `NODE_ENV` | development | mode |
 | `LOG_LEVEL` | debug | niveau Nest Logger |
 | `PREFLIGHT_SERVICE_URL` | `http://localhost:8001` | URL du service FastAPI Python (J5) |
+| `CORS_ORIGIN` | `http://localhost:3001` | Origins CORS autorisées (séparateur virgule). Phase 5 retro-fit pour le frontend Next.js. Verrouillage strict en Phase 7 prod (liste blanche par tenant). |
 
 ## Liens
 
 - [`../README.md`](../README.md) : vue d'ensemble du monorepo
 - [`../phase-4-report.md`](../phase-4-report.md) : rapport narratif détaillé Phase 4
+- [`../phase-5-report.md`](../phase-5-report.md) : rapport Phase 5 (mentionne le retro-fit J3 `/schedule` + CORS)
 - [`../v0-status.md`](../v0-status.md) : tracker d'avancement
+- [`../frontend/`](../frontend/) : frontend Next.js qui consomme l'API
 - [`../poc-scheduler/`](../poc-scheduler/) : moteur Python + worker DB + service preflight
 - [`../poc-scheduler/src/core/models.py`](../poc-scheduler/src/core/models.py) :
   modèles Pydantic source de vérité (alignement schéma Prisma)
