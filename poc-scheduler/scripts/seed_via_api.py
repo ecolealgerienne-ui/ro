@@ -733,12 +733,25 @@ def _upload_preflight_fixtures(api: ApiClient, *, workshop_id: str) -> None:
                 f"/workshops/{workshop_id}/preflight-sessions",
                 files={"file": (name, content.encode("utf-8"), "text/csv")},
             )
-            assert_shape(session, {"id"}, "POST /preflight-sessions")
+            assert_shape(
+                session,
+                {"id", "nRowsTotal", "nRowsImported"},
+                "POST /preflight-sessions",
+            )
+            anomalies = session.get("anomalies") or []
+            n_certain = sum(1 for a in anomalies if a.get("level") == "certain")
+            n_probable = sum(1 for a in anomalies if a.get("level") == "probable")
+            n_surprising = sum(1 for a in anomalies if a.get("level") == "surprising")
             log.info(
-                "  ✓ session %s : status=%s, %d anomalies",
+                "  ✓ session %s : %d/%d lignes importables, "
+                "%d anomalies (%d certain, %d probable, %d surprising)",
                 session["id"],
-                session.get("status"),
-                len(session.get("anomalies", []) or []),
+                session["nRowsImported"],
+                session["nRowsTotal"],
+                len(anomalies),
+                n_certain,
+                n_probable,
+                n_surprising,
             )
         except httpx.HTTPError as e:
             # Le service preflight Python (port 8001) peut être down sans empêcher
