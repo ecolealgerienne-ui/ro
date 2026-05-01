@@ -156,22 +156,171 @@ def cmd_reset(api: ApiClient) -> int:
 
 
 # =====================================================================
-# S1 — seed (skeleton, à compléter S2-S5)
+# S2 — Atelier vitrine "Mécanique Précision SAS"
+# =====================================================================
+#
+# Données alignées avec mockups/data.js (PME méca précision Saint-Étienne).
+# 8 machines / 4 clients / 25 OFs. Gamme V1 simplifiée : 1 opération par OF
+# (la durée totale du mockup tient sur la machine cible). Le solveur consomme
+# ces 25 jobs sans difficulté → bon démo + smoke test du flow versioning + solve.
+
+SHOWCASE_WORKSHOP = {
+    "name": "Mécanique Précision SAS",
+    "city": "Saint-Étienne (42)",
+    "certifications": ["EN 9100", "IATF 16949"],
+    # Quart 8h-18h, lun-ven, 6 opérateurs.
+    "shiftStart": 480,
+    "shiftEnd": 1080,
+    "workdays": [1, 2, 3, 4, 5],
+    "nOperators": 6,
+}
+
+# (machineIdInt, name, type) — index entier stable consommé par le solveur.
+SHOWCASE_MACHINES: list[tuple[int, str, str]] = [
+    (0, "Tour CN-1", "Tour CN"),
+    (1, "Tour CN-2", "Tour CN"),
+    (2, "Tour CN-3", "Tour CN"),
+    (3, "Tour CN-4 (axe C)", "Tour CN"),
+    (4, "Tour CN-5 (axe C)", "Tour CN"),
+    (5, "Fraiseuse FR-1 (5 axes)", "Fraiseuse"),
+    (6, "Fraiseuse FR-2 (5 axes)", "Fraiseuse"),
+    (7, "Rectifieuse RC-1", "Rectifieuse"),
+]
+
+# (name, tier, certifications)
+SHOWCASE_CLIENTS: list[tuple[str, int, list[str]]] = [
+    ("Safran", 1, ["EN 9100"]),
+    ("Stellantis", 2, ["IATF 16949"]),
+    ("ProtoLab", 3, []),
+    ("Bosch", 2, ["IATF 16949"]),
+]
+
+# (orderRef, clientName, partRef, machineIdInt, durationHours)
+# 25 OFs extraits du mockup (jour/début non transmis : c'est le solveur qui place).
+SHOWCASE_ORDERS: list[tuple[str, str, str, int, float]] = [
+    ("OF-2026-0847", "Safran", "Bague aube TBP", 2, 3.5),
+    ("OF-2026-0848", "Safran", "Carter HP étage 4", 5, 5.0),
+    ("OF-2026-0849", "Safran", "Disque turbine HP", 7, 7.0),
+    ("OF-2026-0851", "Stellantis", "Pignon différentiel", 0, 4.0),
+    ("OF-2026-0852", "Stellantis", "Pignon différentiel", 1, 4.0),
+    ("OF-2026-0853", "Stellantis", "Couronne dent.", 0, 5.5),
+    ("OF-2026-0854", "Stellantis", "Couronne dent.", 1, 5.5),
+    ("OF-2026-0855", "ProtoLab", "Proto coque ITER", 6, 4.5),
+    ("OF-2026-0856", "ProtoLab", "Bride hydraulique", 5, 3.0),
+    ("OF-2026-0858", "Bosch", "Axe transmission", 3, 6.0),
+    ("OF-2026-0859", "Bosch", "Axe transmission", 3, 6.0),
+    ("OF-2026-0860", "Safran", "Bague aube TBP", 2, 3.5),
+    ("OF-2026-0861", "Stellantis", "Pignon BV6", 4, 4.5),
+    ("OF-2026-0862", "Stellantis", "Pignon BV6", 4, 4.5),
+    ("OF-2026-0863", "Stellantis", "Bride moteur", 6, 5.0),
+    ("OF-2026-0864", "ProtoLab", "Proto coque ITER", 6, 4.5),
+    ("OF-2026-0865", "Safran", "Carter HP étage 4", 5, 5.0),
+    ("OF-2026-0866", "Stellantis", "Pignon différentiel", 1, 4.0),
+    ("OF-2026-0867", "Bosch", "Bague intermédiaire", 0, 5.0),
+    ("OF-2026-0868", "ProtoLab", "Bride hydraulique", 5, 3.0),
+    ("OF-2026-0869", "Bosch", "Axe transmission", 3, 6.0),
+    ("OF-2026-0870", "Safran", "Disque turbine HP", 7, 7.0),
+    ("OF-2026-0871", "Stellantis", "Couronne dent.", 0, 5.5),
+    ("OF-2026-0872", "Stellantis", "Bride moteur", 6, 5.0),
+    ("OF-2026-0873", "ProtoLab", "Proto coque ITER", 6, 4.5),
+]
+
+
+def _seed_showcase_workshop(api: ApiClient) -> dict[str, Any]:
+    """Crée l'atelier vitrine + machines + clients + 25 OFs.
+
+    Retourne un dict {workshop, machines_by_int, clients_by_name, orders} pour
+    réutilisation par les étapes suivantes (S4 preflight, S5 solve).
+    """
+    log.info("=== Seed atelier vitrine : %s ===", SHOWCASE_WORKSHOP["name"])
+
+    workshop = api.post("/workshops", json_body=SHOWCASE_WORKSHOP)
+    assert_shape(workshop, {"id", "name", "createdAt"}, "POST /workshops")
+    wid = workshop["id"]
+    log.info("  ✓ workshop %s créé (%s)", workshop["name"], wid)
+
+    # --- Machines (8) ---
+    machines_by_int: dict[int, dict[str, Any]] = {}
+    for mid_int, name, mtype in SHOWCASE_MACHINES:
+        m = api.post(
+            f"/workshops/{wid}/machines",
+            json_body={"name": name, "type": mtype, "machineIdInt": mid_int},
+        )
+        assert_shape(m, {"id", "machineIdInt", "name"}, "POST /machines")
+        machines_by_int[mid_int] = m
+    log.info("  ✓ %d machines créées", len(machines_by_int))
+
+    # --- Clients (4) ---
+    clients_by_name: dict[str, dict[str, Any]] = {}
+    for cname, tier, certs in SHOWCASE_CLIENTS:
+        c = api.post(
+            f"/workshops/{wid}/clients",
+            json_body={"name": cname, "tier": tier, "certifications": certs},
+        )
+        assert_shape(c, {"id", "name", "tier"}, "POST /clients")
+        clients_by_name[cname] = c
+    log.info("  ✓ %d clients créés", len(clients_by_name))
+
+    # --- Ordres (25) ---
+    orders: list[dict[str, Any]] = []
+    for order_ref, cname, part_ref, mid_int, dur_h in SHOWCASE_ORDERS:
+        client = clients_by_name[cname]
+        machine = machines_by_int[mid_int]
+        body = {
+            "clientId": client["id"],
+            "orderRef": order_ref,
+            "partRef": part_ref,
+            "operations": [
+                {
+                    "sequenceIdx": 0,
+                    "machineId": machine["id"],
+                    "durationMin": int(dur_h * 60),
+                }
+            ],
+        }
+        o = api.post(f"/workshops/{wid}/orders", json_body=body)
+        assert_shape(o, {"id", "orderRef", "status"}, "POST /orders")
+        orders.append(o)
+    log.info("  ✓ %d ordres de fabrication créés", len(orders))
+
+    # Sanity check via GET pour valider le retour de liste cohérent.
+    listed = api.get(f"/workshops/{wid}/orders")
+    if not isinstance(listed, list) or len(listed) != len(SHOWCASE_ORDERS):
+        log.error(
+            "GET /orders : attendu %d items, reçu %s", len(SHOWCASE_ORDERS), len(listed or [])
+        )
+        raise AssertionError("seed showcase : count orders incohérent")
+
+    return {
+        "workshop": workshop,
+        "machines_by_int": machines_by_int,
+        "clients_by_name": clients_by_name,
+        "orders": orders,
+    }
+
+
+# =====================================================================
+# S1 — cmd_seed (orchestre S2-S5)
 # =====================================================================
 
 
 def cmd_seed(api: ApiClient, *, stress: int = 0) -> int:
-    """Crée l'atelier vitrine, génère CSVs, déclenche un solve.
-
-    Sera complété progressivement :
-      S2 atelier vitrine "Mécanique Précision SAS"
-      S3 stress mode (--stress N)
-      S4 fixtures CSV + upload preflight
-      S5 trigger solve + wait + vérif Schedule
-    """
+    """Orchestre S2 (vitrine), S3 (stress), S4 (CSVs), S5 (solve)."""
     log.info("=== Mode seed (stress=%d) ===", stress)
-    log.warning("seed: stub — implémentation S2-S5 à venir")
-    _ = api  # placeholder, on l'utilisera très bientôt
+
+    seeded = _seed_showcase_workshop(api)
+    log.info(
+        "✓ Atelier vitrine prêt : %s (%d machines, %d clients, %d OFs)",
+        seeded["workshop"]["name"],
+        len(seeded["machines_by_int"]),
+        len(seeded["clients_by_name"]),
+        len(seeded["orders"]),
+    )
+
+    if stress > 0:
+        log.warning("S3 stress mode (n=%d) : non implémenté (à venir)", stress)
+    log.warning("S4 fixtures CSV preflight : non implémenté (à venir)")
+    log.warning("S5 trigger solve + wait : non implémenté (à venir)")
     return 0
 
 
