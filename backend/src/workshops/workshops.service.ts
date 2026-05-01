@@ -65,7 +65,16 @@ export class WorkshopsService {
 
   async remove(id: string) {
     try {
-      await this.prisma.workshop.delete({ where: { id } });
+      // Suppression ordonnée nécessaire : Operation.machine est en `Restrict`
+      // (pour bloquer la suppression accidentelle d'une machine référencée par
+      // un OF actif). Du coup, le cascade Workshop→Machine échoue tant que des
+      // Operation pointent encore dessus. On supprime donc d'abord les Order
+      // (cascade vers Job/Operation), puis le Workshop (cascade vers le reste :
+      // machines, clients, opérateurs, versions, sessions preflight…).
+      await this.prisma.$transaction(async (tx) => {
+        await tx.order.deleteMany({ where: { workshopId: id } });
+        await tx.workshop.delete({ where: { id } });
+      });
       return { id, deleted: true };
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
