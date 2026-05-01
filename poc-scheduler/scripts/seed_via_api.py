@@ -16,10 +16,13 @@ Sert aussi de smoke test E2E : chaque appel mesure latence + assert shape.
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import logging
 import sys
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -421,9 +424,260 @@ def cmd_seed(api: ApiClient, *, stress: int = 0) -> int:
             _seed_stress_workshop(api, idx=i, seed=1000 + i)
         log.info("✓ %d ateliers stress générés", stress)
 
-    log.warning("S4 fixtures CSV preflight : non implémenté (à venir)")
+    _upload_preflight_fixtures(api, workshop_id=seeded["workshop"]["id"])
+
     log.warning("S5 trigger solve + wait : non implémenté (à venir)")
     return 0
+
+
+# =====================================================================
+# S4 — Fixtures CSV preflight (clean / realistic / broken)
+# =====================================================================
+#
+# 3 CSVs forgés à la main pour exercer les 3 niveaux d'anomalies pré-flight :
+#   - clean    : 8 colonnes canoniques, valeurs propres → aucune anomalie
+#   - realistic: synonymes + ~10 % valeurs litigieuses → "probables" + "surprising"
+#   - broken   : colonne `duration_min` manquante → anomalie "certain" bloquante
+#
+# Les fixtures sont aussi écrites sur disque dans data/seed-fixtures/ pour
+# inspection manuelle / tests de régression.
+
+FIXTURES_DIR = Path(__file__).resolve().parent.parent / "data" / "seed-fixtures"
+
+
+def _build_clean_csv() -> str:
+    headers = [
+        "order_id",
+        "client",
+        "piece_name",
+        "material",
+        "operation_type",
+        "machine",
+        "duration_min",
+        "deadline",
+    ]
+    rows = [
+        [
+            "OF-2026-1001",
+            "Safran",
+            "Bague aube TBP",
+            "Inconel 718",
+            "tournage",
+            "CN-3",
+            "210",
+            "2026-05-20",
+        ],
+        [
+            "OF-2026-1002",
+            "Safran",
+            "Carter HP",
+            "Inconel 718",
+            "fraisage",
+            "FR-1",
+            "300",
+            "2026-05-22",
+        ],
+        [
+            "OF-2026-1003",
+            "Stellantis",
+            "Pignon différentiel",
+            "Acier 16MnCr5",
+            "tournage",
+            "CN-1",
+            "240",
+            "2026-05-19",
+        ],
+        [
+            "OF-2026-1004",
+            "Stellantis",
+            "Couronne dent.",
+            "Acier 16MnCr5",
+            "tournage",
+            "CN-2",
+            "330",
+            "2026-05-21",
+        ],
+        [
+            "OF-2026-1005",
+            "ProtoLab",
+            "Proto coque ITER",
+            "Aluminium 7075",
+            "fraisage",
+            "FR-2",
+            "270",
+            "2026-05-23",
+        ],
+        [
+            "OF-2026-1006",
+            "Bosch",
+            "Axe transmission",
+            "Acier 42CrMo4",
+            "tournage",
+            "CN-4",
+            "360",
+            "2026-05-21",
+        ],
+        [
+            "OF-2026-1007",
+            "Safran",
+            "Disque turbine HP",
+            "Inconel 718",
+            "rectification",
+            "RC-1",
+            "420",
+            "2026-05-25",
+        ],
+        [
+            "OF-2026-1008",
+            "Bosch",
+            "Bague intermédiaire",
+            "Acier 42CrMo4",
+            "tournage",
+            "CN-1",
+            "300",
+            "2026-05-22",
+        ],
+    ]
+    return _rows_to_csv(headers, rows)
+
+
+def _build_realistic_csv() -> str:
+    """En-têtes synonymes ERP + ~10 % de valeurs douteuses."""
+    headers = [
+        "no_of",  # synonyme order_id
+        "ref_client",  # synonyme client
+        "designation",  # synonyme piece_name
+        "matiere",  # synonyme material
+        "operation_desc",  # synonyme operation_type
+        "poste",  # synonyme machine
+        "duree_min",  # synonyme duration_min
+        "date_liv",  # synonyme deadline
+    ]
+    rows = [
+        [
+            "OF-2026-2001",
+            "Safran",
+            "Bague aube TBP",
+            "Inconel 718",
+            "tournage",
+            "CN-3",
+            "210",
+            "2026-05-20",
+        ],
+        [
+            "OF-2026-2002",
+            "Safran",
+            "Carter HP",
+            "Inconel 718",
+            "fraisage",
+            "FR-1",
+            "300",
+            "2026-05-22",
+        ],
+        # Anomalie probable : durée formattée "3h30" au lieu de minutes.
+        ["OF-2026-2003", "Stellantis", "Pignon", "Acier", "tournage", "CN-1", "3h30", "2026-05-19"],
+        [
+            "OF-2026-2004",
+            "Stellantis",
+            "Couronne",
+            "Acier",
+            "tournage",
+            "CN-2",
+            "330",
+            "2026-05-21",
+        ],
+        # Anomalie probable : client manquant.
+        ["OF-2026-2005", "", "Proto ITER", "Alu 7075", "fraisage", "FR-2", "270", "2026-05-23"],
+        ["OF-2026-2006", "Bosch", "Axe", "42CrMo4", "tournage", "CN-4", "360", "2026-05-21"],
+        [
+            "OF-2026-2007",
+            "Safran",
+            "Disque turbine",
+            "Inconel",
+            "rectif",
+            "RC-1",
+            "420",
+            "2026-05-25",
+        ],
+        # Anomalie surprising : durée extrême (24 h sur une op).
+        ["OF-2026-2008", "Bosch", "Bague", "Acier", "tournage", "CN-1", "1440", "2026-05-22"],
+        [
+            "OF-2026-2009",
+            "Stellantis",
+            "Pignon BV6",
+            "Acier",
+            "tournage",
+            "CN-5",
+            "270",
+            "2026-05-24",
+        ],
+        [
+            "OF-2026-2010",
+            "ProtoLab",
+            "Bride hydraulique",
+            "Alu",
+            "fraisage",
+            "FR-1",
+            "180",
+            "2026-05-26",
+        ],
+    ]
+    return _rows_to_csv(headers, rows)
+
+
+def _build_broken_csv() -> str:
+    """Colonne duration_min manquante → anomalie certain (bloquante)."""
+    headers = ["order_id", "client", "piece_name", "machine"]
+    rows = [
+        ["OF-2026-3001", "Safran", "Bague TBP", "CN-3"],
+        ["OF-2026-3002", "Stellantis", "Pignon", "CN-1"],
+        ["OF-2026-3003", "Bosch", "Axe", "CN-4"],
+    ]
+    return _rows_to_csv(headers, rows)
+
+
+def _rows_to_csv(headers: list[str], rows: list[list[str]]) -> str:
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(headers)
+    w.writerows(rows)
+    return buf.getvalue()
+
+
+def _upload_preflight_fixtures(api: ApiClient, *, workshop_id: str) -> None:
+    """Génère les 3 fixtures, les écrit sur disque, puis upload via l'API."""
+    log.info("=== S4 : 3 fixtures CSV preflight ===")
+    FIXTURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    fixtures: list[tuple[str, str, str]] = [
+        ("clean.csv", _build_clean_csv(), "aucune anomalie attendue"),
+        ("realistic.csv", _build_realistic_csv(), "~10 % anomalies probables/surprising"),
+        ("broken.csv", _build_broken_csv(), "duration_min manquant → certain bloquant"),
+    ]
+
+    for name, content, expectation in fixtures:
+        path = FIXTURES_DIR / name
+        path.write_text(content, encoding="utf-8")
+        log.info(
+            "  fixture écrite : %s (%s)", path.relative_to(FIXTURES_DIR.parent.parent), expectation
+        )
+
+        try:
+            session = api.post(
+                f"/workshops/{workshop_id}/preflight-sessions",
+                files={"file": (name, content.encode("utf-8"), "text/csv")},
+            )
+            assert_shape(session, {"id"}, "POST /preflight-sessions")
+            log.info(
+                "  ✓ session %s : status=%s, %d anomalies",
+                session["id"],
+                session.get("status"),
+                len(session.get("anomalies", []) or []),
+            )
+        except httpx.HTTPError as e:
+            # Le service preflight Python (port 8001) peut être down sans empêcher
+            # le reste du seed (workshop déjà créé). On loggue et on continue.
+            log.warning("  ⚠ upload %s échoué : %s — preflight_service tourne ?", name, e)
 
 
 # =====================================================================

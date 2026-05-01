@@ -7,6 +7,7 @@
 *.tgz
 *.parquet
 *.feather
+*.csv
 
 # Les fichiers structurels (.gitkeep, .gitignore, README.md, checksums.md5,
 # instances_metadata.csv) ne matchent aucun pattern ci-dessus, ils sont donc
