@@ -35,7 +35,7 @@ Total : ~30 minutes de chat. Coût : 0 €. Apprentissage : maximal.
 
 ## Pourquoi ça compte pour le projet
 
-D'après `specs-fonctionnelles-v3.md` §3 (Module Data Quality), l'extraction est *"probablement 30-40% du travail de développement de l'agent d'extraction"*. C'était identifié comme un risque produit majeur (Phase 3.5).
+D'après `../../docs/specs-fonctionnelles-v3.md` §3 (Module Data Quality), l'extraction est *"probablement 30-40% du travail de développement de l'agent d'extraction"*. C'était identifié comme un risque produit majeur (Phase 3.5).
 
 **On vient de démontrer que ce n'est pas un risque structurel** — c'est de l'ingénierie de prompt, et le prompt qui marche existe (`prompt_v2.md`).
 

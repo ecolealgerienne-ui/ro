@@ -32,7 +32,7 @@
 
 ## Pourquoi ça compte stratégiquement
 
-D'après `specs-fonctionnelles-v3.md` §2.3, la **3ème catégorie de contraintes** (soft constraints en NL) est ce qui distingue le produit d'un APS classique. La spec dit :
+D'après `../../docs/specs-fonctionnelles-v3.md` §2.3, la **3ème catégorie de contraintes** (soft constraints en NL) est ce qui distingue le produit d'un APS classique. La spec dit :
 
 > *Le LLM traduit ces phrases en pondérations qui rentrent dans la fonction objectif sous forme de pénalités.*
 

@@ -16,7 +16,7 @@ Phase 7).
 | **J6** | 5.8 | ✅ | Versioning `/versions` (timeline + diff + rollback non-destructif) |
 | **J7** | 5.2 + 5.3 | ✅ | Onboarding arborescent `/onboarding` (8 steps + branchement conditionnel) + banner contextuel V1 |
 
-Détails complets : [`../phase-5-report.md`](../phase-5-report.md).
+Détails complets : [`../docs/phase-5-report.md`](../docs/phase-5-report.md).
 
 **V2 différée** (post-Phase 5) :
 - Endpoint backend `POST /api/workshops/:id/conversations` qui invoque les
@@ -111,7 +111,7 @@ multipart/form-data            poll(2s) FOR UPDATE
 ```
 
 Détails dans [`../README.md`](../README.md) section Architecture +
-[`../phase-{4,5}-report.md`](../phase-5-report.md).
+[`../phase-{4,5}-report.md`](../docs/phase-5-report.md).
 
 ## Conventions
 
@@ -241,13 +241,13 @@ open http://localhost:3001/workshops/[uuid]/infeasibility  # diagnostic
 ## Liens
 
 - [`../README.md`](../README.md) : vue d'ensemble du monorepo
-- [`../phase-5-report.md`](../phase-5-report.md) : rapport narratif détaillé
+- [`../docs/phase-5-report.md`](../docs/phase-5-report.md) : rapport narratif détaillé
   Phase 5 (7 jalons J1-J7, 8 décisions structurantes)
 - [`../backend/README.md`](../backend/README.md) : backend NestJS qui sert l'API
 - [`../poc-scheduler/README.md`](../poc-scheduler/README.md) : moteur Python +
   worker DB-as-queue + service FastAPI preflight
 - [`../mockups/`](../mockups/) : mockups HTML statiques V0 (jetables, archivés
   en référence)
-- [`../specs-fonctionnelles-v3.md`](../specs-fonctionnelles-v3.md) §5 : spec
+- [`../docs/specs-fonctionnelles-v3.md`](../docs/specs-fonctionnelles-v3.md) §5 : spec
   UX chef d'atelier
-- [`../v0-status.md`](../v0-status.md) : tracker d'avancement par étape
+- [`../docs/v0-status.md`](../docs/v0-status.md) : tracker d'avancement par étape

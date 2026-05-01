@@ -58,7 +58,7 @@ suffit.
 
 ## Principes UX que le mockup illustre
 
-Tirés de `specs-fonctionnelles-v3.md` :
+Tirés de `../docs/specs-fonctionnelles-v3.md` :
 
 1. **Le chef d'atelier garde toujours le dernier mot** — la carte de
    validation jaune apparaît avant toute application de modification

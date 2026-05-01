@@ -6,7 +6,7 @@
 
 ## Contexte
 
-D'après `specs-fonctionnelles-v3.md` §2.3, la **3ème catégorie de contraintes** du produit (la nouveauté V3) est la couche soft constraints qui capte les préférences exprimées en langage naturel :
+D'après `../../docs/specs-fonctionnelles-v3.md` §2.3, la **3ème catégorie de contraintes** du produit (la nouveauté V3) est la couche soft constraints qui capte les préférences exprimées en langage naturel :
 
 - *"On préfère éviter de faire tourner la machine X la nuit"*
 - *"Cet opérateur peut dépanner mais on évite"*

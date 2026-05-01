@@ -26,8 +26,8 @@ partners, le poll 2 s suffit ; migration vers vraie queue déférable
 - Nouveau module `schedules` avec endpoint `GET /api/workshops/:wId/schedule`
   pour exposer le résultat planifié du worker Python au Gantt frontend.
 
-Détails complets : [`../phase-4-report.md`](../phase-4-report.md) +
-[`../phase-5-report.md`](../phase-5-report.md) (jalon J3 retro-fit).
+Détails complets : [`../docs/phase-4-report.md`](../docs/phase-4-report.md) +
+[`../docs/phase-5-report.md`](../docs/phase-5-report.md) (jalon J3 retro-fit).
 
 ## Stack
 
@@ -243,12 +243,12 @@ Couverture e2e (jalon J3 + tests cross-cutting) :
 ## Liens
 
 - [`../README.md`](../README.md) : vue d'ensemble du monorepo
-- [`../phase-4-report.md`](../phase-4-report.md) : rapport narratif détaillé Phase 4
-- [`../phase-5-report.md`](../phase-5-report.md) : rapport Phase 5 (mentionne le retro-fit J3 `/schedule` + CORS)
-- [`../v0-status.md`](../v0-status.md) : tracker d'avancement
+- [`../docs/phase-4-report.md`](../docs/phase-4-report.md) : rapport narratif détaillé Phase 4
+- [`../docs/phase-5-report.md`](../docs/phase-5-report.md) : rapport Phase 5 (mentionne le retro-fit J3 `/schedule` + CORS)
+- [`../docs/v0-status.md`](../docs/v0-status.md) : tracker d'avancement
 - [`../frontend/`](../frontend/) : frontend Next.js qui consomme l'API
 - [`../poc-scheduler/`](../poc-scheduler/) : moteur Python + worker DB + service preflight
 - [`../poc-scheduler/src/core/models.py`](../poc-scheduler/src/core/models.py) :
   modèles Pydantic source de vérité (alignement schéma Prisma)
-- [`../specs-techniques-v3.md`](../specs-techniques-v3.md) §3.2 : spec modèle de
+- [`../docs/specs-techniques-v3.md`](../docs/specs-techniques-v3.md) §3.2 : spec modèle de
   données SaaS

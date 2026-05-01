@@ -27,13 +27,15 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ro/
 ├── README.md                              # vue d'ensemble (point d'entrée)
 ├── CONTRIBUTING.md                        # ce fichier
-├── v0-status.md                           # tracker structuré par étape
-├── phase-{0,1,2,3,4}-report.md            # rapports narratifs par phase
-├── specs-fonctionnelles-v3.md             # spec produit
-├── specs-techniques-v3.md                 # spec architecture
-├── specs-poc-scripts-v1.md                # spec scripts POC
-├── guide-entretiens-decouverte-phase0.md
 ├── .gitignore  .gitattributes  .pre-commit-config.yaml
+│
+├── docs/                                  # Toute la doc (sauf README + CONTRIBUTING)
+│   ├── v0-status.md                       # tracker structuré par étape
+│   ├── phase-{0,1,2,3,4,5}-report.md      # rapports narratifs par phase
+│   ├── specs-fonctionnelles-v3.md         # spec produit
+│   ├── specs-techniques-v3.md             # spec architecture
+│   ├── specs-poc-scripts-v1.md            # spec scripts POC
+│   └── guide-entretiens-decouverte-phase0.md
 │
 ├── poc-scheduler/        # Phases 0-3 — moteur Python (CP-SAT + agents LLM)
 │                          #   + scripts d'intégration Phase 4 (db_worker, preflight_service)
@@ -60,7 +62,7 @@ mockups restent en référence jetable.
 |---------|------|
 | `main` | État stable, releasable |
 | `dev` | Intégration continue, base des features |
-| `feat/<phase>.<étape>-<slug>` | Une étape du `v0-status.md` (ex: `feat/0.1-setup-poc`) |
+| `feat/<phase>.<étape>-<slug>` | Une étape du `docs/v0-status.md` (ex: `feat/0.1-setup-poc`) |
 | `fix/<slug>` | Correctif ciblé |
 | `chore/<slug>` | Outillage, infra, refacto sans logique |
 | `docs/<slug>` | Documentation seule |
@@ -68,7 +70,7 @@ mockups restent en référence jetable.
 **Règles :**
 - Pas de commit direct sur `main`. Merges via PR uniquement.
 - `dev` reçoit les feature branches via PR (squash merge ou merge commit selon l'étape).
-- Une feature branch couvre **une seule étape** du `v0-status.md`. Pas de branches XXL.
+- Une feature branch couvre **une seule étape** du `docs/v0-status.md`. Pas de branches XXL.
 - Branche supprimée après merge.
 
 ---
@@ -116,7 +118,7 @@ chore: bump ortools to 9.11
 **Titre** : suit la convention de commits (`feat(poc): ...`).
 
 **Description** doit contenir :
-- Lien vers l'étape `v0-status.md` couverte (ex: `Couvre étape 0.1`)
+- Lien vers l'étape `docs/v0-status.md` couverte (ex: `Couvre étape 0.1`)
 - Critère de sortie atteint ou non
 - Tests joués (commandes copiables)
 - Captures si UI
@@ -125,7 +127,7 @@ chore: bump ortools to 9.11
 - [ ] Tous les tests passent (`uv run pytest`, `npm test` selon scope)
 - [ ] `pre-commit run --all-files` passe
 - [ ] `mypy --strict` (Python) ou `tsc --noEmit` (TS) sans erreur
-- [ ] `v0-status.md` mis à jour si l'étape est terminée
+- [ ] `docs/v0-status.md` mis à jour si l'étape est terminée
 
 **Stratégie de merge :** squash merge par défaut (1 PR = 1 commit dans `dev`).
 
@@ -300,11 +302,11 @@ mécanismes universels.
 - Pas de `--no-verify` pour bypass les hooks
 - Pas de commit de secrets, `.env`, dumps DB
 - Pas de fichiers binaires > 1 MB sans Git LFS (à mettre en place si besoin)
-- Pas de TODO sans ticket / mention `v0-status.md`
+- Pas de TODO sans ticket / mention `docs/v0-status.md`
 
 ---
 
-## 10. Mise à jour du `v0-status.md`
+## 10. Mise à jour du `docs/v0-status.md`
 
 À chaque transition d'étape :
 - Statut mis à jour (`⬜ → 🟡 → 🔵 → ✅`)

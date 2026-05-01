@@ -6,9 +6,9 @@ agents LLM + scripts d'intégration backend.
 
 Référentiels :
 - `../README.md` — vue d'ensemble du monorepo
-- `../specs-fonctionnelles-v3.md` / `../specs-techniques-v3.md` — spec produit / archi
-- `../specs-poc-scripts-v1.md` — spec POC scripts
-- `../v0-status.md` — suivi d'avancement structuré
+- `../docs/specs-fonctionnelles-v3.md` / `../docs/specs-techniques-v3.md` — spec produit / archi
+- `../docs/specs-poc-scripts-v1.md` — spec POC scripts
+- `../docs/v0-status.md` — suivi d'avancement structuré
 - `../phase-{0,1,2,3,4}-report.md` — rapports narratifs par phase
 - `../CONTRIBUTING.md` — conventions, dont **§8 architecture multi-verticale**
 
@@ -182,13 +182,13 @@ uv run uvicorn scripts.preflight_service:app --port 8001
 Pourquoi sync (pas DB-as-queue) : pre-flight rapide, l'overhead de polling n'a
 pas de sens. Pattern HTTP bloquant suffit.
 
-Détails : [`../phase-4-report.md`](../phase-4-report.md) jalons J4 et J5.
+Détails : [`../docs/phase-4-report.md`](../docs/phase-4-report.md) jalons J4 et J5.
 
 ---
 
 ## État d'avancement
 
-Voir `../v0-status.md` pour la vue d'ensemble par phases, et les rapports
+Voir `../docs/v0-status.md` pour la vue d'ensemble par phases, et les rapports
 narratifs (`../phase-{0,1,2,3,4}-report.md`).
 
 - ✅ **Phase 0 stabilisée** — Gate 0 ✓ : OR-Tools validé sur Taillard (5/5 instances < 5 % gap)
@@ -196,7 +196,7 @@ narratifs (`../phase-{0,1,2,3,4}-report.md`).
   - 1.1, 1.2 composite, 1.3 calibration, 1.4 replanif, 1.5 tier, 1.6 soft constraints, 1.7 clustering, 1.8 MIS ✅
   - **1.1.opt** ✓ critère assoupli — migration `setup-dependent` vers
     `add_circuit` livrée, gain mesurable 30 % → 40 % feasibility ; target 80 %
-    hors d'atteinte sans redesign solveur (cf. `../phase-1-report.md`)
+    hors d'atteinte sans redesign solveur (cf. `../docs/phase-1-report.md`)
 - ✅ **Phase 2 stabilisée + Gate 1 ✓** — trust layer technique, 0 erreur silencieuse sur 20 ateliers tests
 - ✅ **Phase 3 stabilisée** — 3.3-3.8 livrés (13 trials réels OK, prompts validés) ; 3.1/3.2 MCP abandonnés
 - ✅ **Phase 4 stabilisée V1** — `scripts/db_worker.py` + `scripts/preflight_service.py` + `src/core/snapshot_bridge.py` livrés
@@ -221,4 +221,4 @@ Sprint 1 livré : `extra="forbid"` sur 24 BaseModel, factorisation
 test trivial supprimé. Sprint 2 (refactors moyens M1-M3, M11) reporté
 post-Phase 5.
 
-Détails dans le journal des décisions de `../v0-status.md`.
+Détails dans le journal des décisions de `../docs/v0-status.md`.

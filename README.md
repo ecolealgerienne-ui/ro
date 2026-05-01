@@ -25,7 +25,7 @@ Trois piliers techniques :
    circuit breaker INFEASIBLE, MIS approximé, validation systématique humaine.
 
 Le différenciateur produit n'est pas la techno IA, c'est l'**UX décisionnelle
-accumulée** par les clients dans le produit (5ᵉ moat selon `specs-fonctionnelles-v3.md` §10).
+accumulée** par les clients dans le produit (5ᵉ moat selon `docs/specs-fonctionnelles-v3.md` §10).
 
 ---
 
@@ -43,7 +43,7 @@ accumulée** par les clients dans le produit (5ᵉ moat selon `specs-fonctionnel
 | 7 | Observabilité, sécurité, production | ⬜ à faire (auth + multi-tenant ici) |
 | 8 | Pilote design partners | ⬜ à faire |
 
-Suivi détaillé par étape : [`v0-status.md`](./v0-status.md).
+Suivi détaillé par étape : [`docs/v0-status.md`](./docs/v0-status.md).
 
 **Gates franchis** :
 - **Gate 0** ✅ — OR-Tools CP-SAT validé sur Taillard (5/5 instances < 5 % gap, gap moyen 1.82 %)
@@ -55,14 +55,16 @@ Suivi détaillé par étape : [`v0-status.md`](./v0-status.md).
 
 ```
 ro/
-├── README.md                          # ce fichier
+├── README.md                          # ce fichier (point d'entrée GitHub)
 ├── CONTRIBUTING.md                    # conventions de travail
-├── v0-status.md                       # tracker structuré par étape
-├── phase-{0,1,2,3,4,5}-report.md      # rapports narratifs par phase
-├── specs-fonctionnelles-v3.md         # spec produit
-├── specs-techniques-v3.md             # spec architecture
-├── specs-poc-scripts-v1.md            # spec scripts POC
-├── guide-entretiens-decouverte-phase0.md
+│
+├── docs/                              # Toute la doc (sauf README + CONTRIBUTING)
+│   ├── v0-status.md                   # tracker structuré par étape
+│   ├── phase-{0,1,2,3,4,5}-report.md  # rapports narratifs par phase
+│   ├── specs-fonctionnelles-v3.md     # spec produit
+│   ├── specs-techniques-v3.md         # spec architecture
+│   ├── specs-poc-scripts-v1.md        # spec scripts POC
+│   └── guide-entretiens-decouverte-phase0.md
 │
 ├── poc-scheduler/                     # Moteur Python (Phases 0-3)
 │   ├── src/
@@ -193,8 +195,8 @@ Postgres = multi-workers safe sans Redis. Pour le pre-flight rapide (~1 s),
 HTTP synchrone direct vers FastAPI. Pour le frontend → backend, fetch
 classique avec CORS allow-origin V1 (verrouillage par tenant Phase 7).
 
-Détails dans [`phase-4-report.md`](./phase-4-report.md) (backend) et
-[`phase-5-report.md`](./phase-5-report.md) (frontend).
+Détails dans [`docs/phase-4-report.md`](./docs/phase-4-report.md) (backend) et
+[`docs/phase-5-report.md`](./docs/phase-5-report.md) (frontend).
 
 ---
 
@@ -218,15 +220,15 @@ Détails dans [`phase-4-report.md`](./phase-4-report.md) (backend) et
 | Question | Document |
 |----------|----------|
 | Comment démarrer le projet ? | Ce README, sections « Démarrage rapide » |
-| Quel est l'avancement actuel ? | [`v0-status.md`](./v0-status.md) |
-| Pourquoi cette décision ? | Journal des décisions dans `v0-status.md` ou `phase-X-report.md` |
+| Quel est l'avancement actuel ? | [`docs/v0-status.md`](./docs/v0-status.md) |
+| Pourquoi cette décision ? | Journal des décisions dans `docs/v0-status.md` ou `phase-X-report.md` |
 | Quelles sont les conventions ? | [`CONTRIBUTING.md`](./CONTRIBUTING.md) |
 | Comment marche le moteur ? | [`poc-scheduler/README.md`](./poc-scheduler/README.md) |
 | Comment marche le backend ? | [`backend/README.md`](./backend/README.md) |
 | Comment marche le frontend ? | [`frontend/README.md`](./frontend/README.md) |
 | À quoi ressemblait l'UX initiale ? | [`mockups/README.md`](./mockups/README.md) (8 écrans HTML, jetables) |
-| Quelle est la spec produit ? | [`specs-fonctionnelles-v3.md`](./specs-fonctionnelles-v3.md) |
-| Quelle est la spec technique ? | [`specs-techniques-v3.md`](./specs-techniques-v3.md) |
+| Quelle est la spec produit ? | [`docs/specs-fonctionnelles-v3.md`](./docs/specs-fonctionnelles-v3.md) |
+| Quelle est la spec technique ? | [`docs/specs-techniques-v3.md`](./docs/specs-techniques-v3.md) |
 
 ---
 

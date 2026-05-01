@@ -6,7 +6,7 @@
 > de LLM (durée < 0, date invalide, etc.).
 
 **Statut** : design, pas encore implémenté.
-**Référentiel produit** : `specs-fonctionnelles-v3.md` §3 (Module Data Quality, logique 3 niveaux).
+**Référentiel produit** : `../../docs/specs-fonctionnelles-v3.md` §3 (Module Data Quality, logique 3 niveaux).
 
 ---
 
