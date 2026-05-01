@@ -426,8 +426,74 @@ def cmd_seed(api: ApiClient, *, stress: int = 0) -> int:
 
     _upload_preflight_fixtures(api, workshop_id=seeded["workshop"]["id"])
 
-    log.warning("S5 trigger solve + wait : non implémenté (à venir)")
+    _trigger_solve_and_wait(api, workshop_id=seeded["workshop"]["id"])
+
     return 0
+
+
+# =====================================================================
+# S5 — Trigger solve + poll + GET schedule
+# =====================================================================
+
+
+SOLVE_TIMEOUT_S = 60.0
+SOLVE_POLL_INTERVAL_S = 1.5
+
+
+def _trigger_solve_and_wait(api: ApiClient, *, workshop_id: str) -> None:
+    """Crée un SolveJob, polle son statut, vérifie le Schedule créé.
+
+    Le worker Python (scripts/db_worker.py) doit tourner en parallèle pour
+    consommer le job. S'il est down, le statut reste `pending` et on timeout
+    proprement avec un warning.
+    """
+    log.info("=== S5 : trigger solve + wait ===")
+
+    job = api.post(f"/workshops/{workshop_id}/solve-jobs", json_body={})
+    assert_shape(job, {"id", "status"}, "POST /solve-jobs")
+    job_id = job["id"]
+    log.info("  ✓ SolveJob %s créé (status=%s)", job_id, job["status"])
+
+    deadline = time.monotonic() + SOLVE_TIMEOUT_S
+    last_status = job["status"]
+
+    while time.monotonic() < deadline:
+        time.sleep(SOLVE_POLL_INTERVAL_S)
+        current = api.get(f"/workshops/{workshop_id}/solve-jobs/{job_id}")
+        assert_shape(current, {"status"}, "GET /solve-jobs/:id")
+
+        if current["status"] != last_status:
+            log.info("  → status: %s → %s", last_status, current["status"])
+            last_status = current["status"]
+
+        if current["status"] in {"done", "failed", "cancelled"}:
+            break
+    else:
+        log.warning(
+            "  ⚠ timeout après %.0fs, status=%s — db_worker tourne ?",
+            SOLVE_TIMEOUT_S,
+            last_status,
+        )
+        return
+
+    if last_status != "done":
+        log.warning("  ⚠ solve terminé en status=%s (attendu 'done')", last_status)
+        return
+
+    # Schedule créé : GET pour vérifier
+    schedule = api.get(f"/workshops/{workshop_id}/schedule")
+    if schedule is None:
+        log.warning("  ⚠ GET /schedule retourne null malgré status=done")
+        return
+
+    assert_shape(schedule, {"versionNumber"}, "GET /schedule")
+    n_assignments = len(schedule.get("assignments") or [])
+    log.info(
+        "  ✓ Schedule v%s récupéré : %d assignments, makespan=%s",
+        schedule.get("versionNumber"),
+        n_assignments,
+        schedule.get("makespanMin"),
+    )
 
 
 # =====================================================================
