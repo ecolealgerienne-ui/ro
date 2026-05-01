@@ -55,6 +55,8 @@ Active l'environnement virtuel implicitement (uv le crée et l'utilise via `uv r
 | `uv run python scripts/download_benchmarks.py taillard` | Télécharge les instances Taillard |
 | `uv run python scripts/db_worker.py --polling-interval 2` | **Worker DB-as-queue** (Phase 4 J4) — voir « Bridge backend » |
 | `uv run uvicorn scripts.preflight_service:app --port 8001` | **Service FastAPI sync** pour pre-flight (Phase 4 J5) |
+| `uv run python scripts/seed_via_api.py` | **Seed via API** : reset DB + atelier vitrine + CSVs + solve (idempotent, démo + smoke E2E) |
+| `uv run python scripts/seed_via_api.py seed --stress 5` | + 5 ateliers paramétriques (générateur synthétique) |
 
 ---
 
