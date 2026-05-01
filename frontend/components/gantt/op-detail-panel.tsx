@@ -1,11 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { OpView } from './types';
 
 interface OpDetailPanelProps {
   op: OpView;
+  workshopId: string;
   onClose: () => void;
 }
 
@@ -21,7 +23,10 @@ const TIER_LABEL: Record<1 | 2 | 3, string> = {
   3: 'Tier 3 — opportuniste',
 };
 
-export function OpDetailPanel({ op, onClose }: OpDetailPanelProps) {
+export function OpDetailPanel({ op, workshopId, onClose }: OpDetailPanelProps) {
+  // Pré-remplit la conversation avec une question contextualisée à l'OF cliqué.
+  const convPrefill = (q: string) =>
+    `/workshops/${workshopId}/conversation?q=${encodeURIComponent(q.replace('{ref}', op.orderRef))}`;
   return (
     <aside className="fixed right-0 top-0 z-30 h-full w-96 overflow-y-auto border-l border-slate-200 bg-white shadow-2xl">
       <div className="flex items-start justify-between border-b border-slate-200 p-5">
@@ -71,44 +76,27 @@ export function OpDetailPanel({ op, onClose }: OpDetailPanelProps) {
         </div>
 
         <div className="space-y-2 border-t border-slate-100 pt-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start"
-            disabled
-            title="Disponible jalon J4"
-          >
-            ✋ Geler cet OF
+          <Button asChild variant="outline" size="sm" className="w-full justify-start">
+            <Link href={convPrefill(`Geler l'OF {ref}`)}>✋ Geler cet OF</Link>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start"
-            disabled
-            title="Disponible jalon J4"
-          >
-            📅 Forcer démarrage à une date précise
+          <Button asChild variant="outline" size="sm" className="w-full justify-start">
+            <Link href={convPrefill(`Forcer le démarrage de {ref} à une date précise`)}>
+              📅 Forcer démarrage à une date précise
+            </Link>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start"
-            disabled
-            title="Disponible jalon J4"
-          >
-            💬 Demander : « pourquoi pas plus tôt ? »
+          <Button asChild variant="outline" size="sm" className="w-full justify-start">
+            <Link href={convPrefill(`Pourquoi {ref} ne démarre pas plus tôt ?`)}>
+              💬 Demander : « pourquoi pas plus tôt ? »
+            </Link>
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="w-full justify-start"
-            disabled
-            title="Disponible jalon J4"
-          >
-            ⏸ Reporter à la semaine prochaine
+          <Button asChild variant="destructive" size="sm" className="w-full justify-start">
+            <Link href={convPrefill(`Reporte {ref} d'une semaine`)}>
+              ⏸ Reporter à la semaine prochaine
+            </Link>
           </Button>
           <p className="pt-2 text-[11px] italic text-slate-500">
-            Actions disponibles en jalon J4 (conversation + validation systématique).
+            Chaque action ouvre une conversation pré-remplie. Validation systématique avant
+            application.
           </p>
         </div>
       </div>

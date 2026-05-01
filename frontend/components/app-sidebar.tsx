@@ -9,6 +9,7 @@ const NAV = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊', href: '' },
   { id: 'gantt', label: 'Planning', icon: '📅', href: '/gantt' },
   { id: 'conversation', label: 'Conversation', icon: '💬', href: '/conversation' },
+  { id: 'infeasibility', label: 'Infaisabilité', icon: '⚠️', href: '/infeasibility' },
   { id: 'preflight', label: 'Imports CSV', icon: '📥', href: '/preflight' },
   { id: 'versions', label: 'Historique', icon: '🕐', href: '/versions' },
 ];

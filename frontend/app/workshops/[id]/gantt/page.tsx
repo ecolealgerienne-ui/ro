@@ -171,7 +171,9 @@ export default function GanttPage({ params }: { params: Promise<{ id: string }> 
         </Card>
       )}
 
-      {selected && <OpDetailPanel op={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <OpDetailPanel op={selected} workshopId={id} onClose={() => setSelected(null)} />
+      )}
     </div>
   );
 }
