@@ -166,3 +166,34 @@ export const useUpdateAnomaly = (workshopId: string, sessionId: string) => {
     },
   });
 };
+
+// ---------- Version detail (avec snapshot) ----------
+
+export interface VersionDetail extends VersionListItem {
+  snapshot: unknown;
+  workshopId: string;
+  updatedAt?: string;
+}
+
+export const useVersionDetail = (
+  workshopId: string | undefined,
+  versionNumber: number | undefined,
+) =>
+  useQuery({
+    queryKey: ['workshops', workshopId, 'versions', versionNumber],
+    queryFn: () =>
+      api.get<VersionDetail>(`/workshops/${workshopId}/versions/${versionNumber}`),
+    enabled: !!workshopId && versionNumber !== undefined,
+  });
+
+export const useRollback = (workshopId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (versionNumber: number) =>
+      api.post<VersionDetail>(`/workshops/${workshopId}/versions/${versionNumber}/rollback`),
+    onSuccess: () => {
+      // Toutes les caches dépendant des versions deviennent stale
+      void qc.invalidateQueries({ queryKey: ['workshops', workshopId] });
+    },
+  });
+};
