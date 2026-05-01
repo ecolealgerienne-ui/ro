@@ -3,13 +3,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type {
+  Anomaly,
+  AnomalyStatus,
   OrderListItem,
+  PreflightSessionDetail,
+  PreflightSessionListItem,
   Schedule,
   SolveJob,
   VersionListItem,
   WorkshopDetail,
   WorkshopWithCount,
 } from './types';
+import { API_BASE_URL } from './client';
 
 // ---------- Workshops ----------
 
@@ -85,6 +90,79 @@ export const useTriggerSolve = (workshopId: string) => {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['workshops', workshopId, 'solve-jobs'] });
       void qc.invalidateQueries({ queryKey: ['workshops', workshopId, 'schedule'] });
+    },
+  });
+};
+
+// ---------- Preflight sessions ----------
+
+export const usePreflightSessions = (workshopId: string | undefined) =>
+  useQuery({
+    queryKey: ['workshops', workshopId, 'preflight-sessions'],
+    queryFn: () =>
+      api.get<PreflightSessionListItem[]>(`/workshops/${workshopId}/preflight-sessions`),
+    enabled: !!workshopId,
+  });
+
+export const usePreflightSession = (
+  workshopId: string | undefined,
+  sessionId: string | undefined,
+) =>
+  useQuery({
+    queryKey: ['workshops', workshopId, 'preflight-sessions', sessionId],
+    queryFn: () =>
+      api.get<PreflightSessionDetail>(
+        `/workshops/${workshopId}/preflight-sessions/${sessionId}`,
+      ),
+    enabled: !!workshopId && !!sessionId,
+  });
+
+/**
+ * Upload multipart d'un CSV. fetch direct (pas via api.post car JSON) :
+ * on construit un FormData explicite.
+ */
+export const useUploadPreflight = (workshopId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(
+        `${API_BASE_URL}/workshops/${workshopId}/preflight-sessions`,
+        { method: 'POST', body: form },
+      );
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Upload failed: ${res.status} ${text.slice(0, 200)}`);
+      }
+      return (await res.json()) as PreflightSessionDetail;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['workshops', workshopId, 'preflight-sessions'] });
+    },
+  });
+};
+
+export const useUpdateAnomaly = (workshopId: string, sessionId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      anomalyId,
+      status,
+      resolution,
+    }: {
+      anomalyId: string;
+      status: AnomalyStatus;
+      resolution?: string;
+    }) =>
+      api.patch<Anomaly>(
+        `/workshops/${workshopId}/preflight-sessions/${sessionId}/anomalies/${anomalyId}`,
+        { status, resolution },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: ['workshops', workshopId, 'preflight-sessions', sessionId],
+      });
     },
   });
 };

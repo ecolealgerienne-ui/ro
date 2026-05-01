@@ -129,6 +129,42 @@ export interface SolveJob {
   updatedAt: string;
 }
 
+// ---------- Preflight sessions / Anomalies ----------
+
+export type AnomalyLevel = 'certain' | 'probable' | 'surprising';
+export type AnomalyStatus = 'pending' | 'resolved' | 'ignored' | 'excluded';
+
+export interface Anomaly {
+  id: string;
+  sessionId: string;
+  level: AnomalyLevel;
+  code: string;
+  rowIndex: number;
+  column: string | null;
+  rawValue: string | null;
+  suggestion: string | null;
+  status: AnomalyStatus;
+  resolution: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PreflightSessionListItem {
+  id: string;
+  workshopId: string;
+  fileName: string;
+  fileHash: string | null;
+  nRowsTotal: number;
+  nRowsImported: number;
+  importedAt: string;
+  closedAt: string | null;
+  _count: { anomalies: number };
+}
+
+export interface PreflightSessionDetail extends Omit<PreflightSessionListItem, '_count'> {
+  anomalies: Anomaly[];
+}
+
 // ---------- Schedule (résultat solve) ----------
 
 /**
