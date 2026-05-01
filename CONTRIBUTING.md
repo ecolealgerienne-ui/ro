@@ -38,8 +38,8 @@ ro/
 ├── poc-scheduler/        # Phases 0-3 — moteur Python (CP-SAT + agents LLM)
 │                          #   + scripts d'intégration Phase 4 (db_worker, preflight_service)
 ├── backend/               # Phase 4 — NestJS API + Prisma + Postgres
-├── mockups/               # Phase 5 préparation — UX HTML statique (jetable)
-├── frontend/              # Phase 5 — Next.js chef d'atelier (à créer)
+├── frontend/              # Phase 5 — Next.js + Tailwind + shadcn (chef d'atelier)
+├── mockups/               # Mockups V0 (jetables, archivés en référence)
 ├── pwa/                   # Phase 6 — PWA opérateur (à créer)
 └── infra/                 # Phase 7 — Docker Compose, monitoring, déploiement
 ```
@@ -48,7 +48,9 @@ Les dossiers sont créés au fur et à mesure des phases. **Note Phase 1-3** : l
 microservice Python (CP-SAT + agents LLM) reste dans `poc-scheduler/`, il n'y a
 pas eu de scission `solver-service/` séparé. La Phase 4 a ajouté les scripts
 d'intégration backend (`scripts/db_worker.py`, `scripts/preflight_service.py`)
-sous `poc-scheduler/scripts/`.
+sous `poc-scheduler/scripts/`. La Phase 5 a converti les mockups V0 (HTML
+statique dans `mockups/`) en vraies pages Next.js dans `frontend/` ; les
+mockups restent en référence jetable.
 
 ---
 
@@ -167,6 +169,25 @@ Hooks actifs :
   `whitelist: true, forbidNonWhitelisted: true` (équivalent Pydantic
   `extra="forbid"` côté API)
 - Pas de `any` non justifié — préférer `unknown` + narrowing
+
+### TypeScript / JS (frontend Next.js)
+- `eslint` (via `next lint`) + `prettier` + `prettier-plugin-tailwindcss`
+  (tri auto des classes Tailwind)
+- `tsc --noEmit` strict (scripts `npm run typecheck`)
+- Path alias `@/*` → racine du projet (`@/components/...`, `@/lib/...`)
+- **Server Components par défaut**, `'use client'` uniquement quand
+  nécessaire (interactivité, hooks TanStack Query, state local)
+- Composants shadcn dans `frontend/components/ui/` — **manuels** (config
+  `components.json` + copie inline depuis ui.shadcn.com), pas via
+  `npx shadcn add` car l'environnement CI/dev ne supporte pas l'interactif
+- API client : `lib/api/client.ts` (fetch natif Node 22 + `ApiError`),
+  `lib/api/types.ts` (miroirs Prisma maintenus à la main, **synchroniser
+  manuellement** si le schéma backend change), `lib/api/hooks.ts`
+  (TanStack Query)
+- Pas d'auth V1 (cohérent avec backend, différé Phase 7)
+- TanStack Query : `staleTime: 30s` par défaut, retry skip 4xx,
+  refetch interval intelligent (poll 2s seulement si solve-jobs
+  pending/running détectés)
 
 ### SQL / migrations
 - Migrations Prisma versionnées (`backend/prisma/migrations/`)
