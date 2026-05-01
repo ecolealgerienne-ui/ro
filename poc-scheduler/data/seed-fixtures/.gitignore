@@ -1,0 +1,4 @@
+# Override le `*.csv` du parent : on veut tracer ces fixtures
+# de démonstration dans git pour qu'elles soient téléchargeables
+# directement depuis le repo (cf. README.md du dossier).
+!*.csv

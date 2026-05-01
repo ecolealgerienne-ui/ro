@@ -1,0 +1,11 @@
+no_of,ref_client,designation,matiere,operation_desc,poste,duree_min,date_liv
+OF-2026-2001,Safran,Bague aube TBP,Inconel 718,tournage,CN-3,210,2026-05-20
+OF-2026-2002,Safran,Carter HP,Inconel 718,fraisage,FR-1,300,2026-05-22
+OF-2026-2003,Stellantis,Pignon,Acier,tournage,CN-1,3h30,2026-05-19
+OF-2026-2004,Stellantis,Couronne,Acier,tournage,CN-2,330,2026-05-21
+OF-2026-2005,,Proto ITER,Alu 7075,fraisage,FR-2,270,2026-05-23
+OF-2026-2006,Bosch,Axe,42CrMo4,tournage,CN-4,360,2026-05-21
+OF-2026-2007,Safran,Disque turbine,Inconel,rectif,RC-1,420,2026-05-25
+OF-2026-2008,Bosch,Bague,Acier,tournage,CN-1,1440,2026-05-22
+OF-2026-2009,Stellantis,Pignon BV6,Acier,tournage,CN-5,270,2026-05-24
+OF-2026-2010,ProtoLab,Bride hydraulique,Alu,fraisage,FR-1,180,2026-05-26

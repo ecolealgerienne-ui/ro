@@ -1,0 +1,9 @@
+order_id,client,piece_name,material,operation_type,machine,duration_min,deadline
+OF-2026-1001,Safran,Bague aube TBP,Inconel 718,tournage,CN-3,210,2026-05-20
+OF-2026-1002,Safran,Carter HP,Inconel 718,fraisage,FR-1,300,2026-05-22
+OF-2026-1003,Stellantis,Pignon différentiel,Acier 16MnCr5,tournage,CN-1,240,2026-05-19
+OF-2026-1004,Stellantis,Couronne dent.,Acier 16MnCr5,tournage,CN-2,330,2026-05-21
+OF-2026-1005,ProtoLab,Proto coque ITER,Aluminium 7075,fraisage,FR-2,270,2026-05-23
+OF-2026-1006,Bosch,Axe transmission,Acier 42CrMo4,tournage,CN-4,360,2026-05-21
+OF-2026-1007,Safran,Disque turbine HP,Inconel 718,rectification,RC-1,420,2026-05-25
+OF-2026-1008,Bosch,Bague intermédiaire,Acier 42CrMo4,tournage,CN-1,300,2026-05-22
