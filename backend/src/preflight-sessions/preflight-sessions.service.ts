@@ -4,6 +4,7 @@ import { AnomalyLevel, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateAnomalyDto } from './dto/update-anomaly.dto';
 import { PreflightClientService, PreflightError } from './preflight-client.service';
+import type { UploadedFile as MulterFile } from './types';
 
 const SEVERITY_TO_LEVEL: Record<PreflightError['severity'], AnomalyLevel> = {
   blocking: AnomalyLevel.certain,
@@ -26,10 +27,7 @@ export class PreflightSessionsService {
     private readonly preflightClient: PreflightClientService,
   ) {}
 
-  async upload(
-    workshopId: string,
-    file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
-  ) {
+  async upload(workshopId: string, file: MulterFile) {
     if (!file?.buffer || file.size === 0) {
       throw new BadRequestException('Fichier vide ou absent');
     }

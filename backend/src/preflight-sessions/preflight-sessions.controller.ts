@@ -15,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UpdateAnomalyDto } from './dto/update-anomaly.dto';
 import { PreflightSessionsService } from './preflight-sessions.service';
+import type { UploadedFile as MulterFile } from './types';
 
 /** 5 Mio max — un CSV ERP de 50 000 lignes pèse ~3-4 Mio. */
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -28,7 +29,7 @@ export class PreflightSessionsController {
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE } }))
   upload(
     @Param('workshopId', ParseUUIDPipe) workshopId: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: MulterFile,
   ) {
     if (!file) throw new BadRequestException('Fichier manquant (champ multipart "file")');
     return this.preflight.upload(workshopId, file);
