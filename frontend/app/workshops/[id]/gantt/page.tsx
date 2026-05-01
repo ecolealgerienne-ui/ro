@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { use, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import {
   type GanttFilters,
   type OpView,
 } from '@/components/gantt/types';
+import { ApiError } from '@/lib/api/client';
 import {
   useOrders,
   useSchedule,
@@ -58,11 +60,23 @@ export default function GanttPage({ params }: { params: Promise<{ id: string }> 
     return <div className="p-8 text-slate-500">Chargement…</div>;
   }
   if (!workshopQuery.data) {
+    const err = workshopQuery.error;
+    const isNotFound = err instanceof ApiError && err.status === 404;
     return (
       <div className="p-8">
         <Card>
-          <CardContent className="p-6 text-rose-700">
-            Workshop introuvable.
+          <CardContent className="space-y-4 p-6">
+            {isNotFound ? (
+              <p className="text-slate-700">
+                <strong>Cet atelier n&apos;existe plus.</strong> Il a peut-être été supprimé ou la
+                base réinitialisée.
+              </p>
+            ) : (
+              <p className="text-rose-700">Backend injoignable.</p>
+            )}
+            <Button asChild size="sm">
+              <Link href="/">← Voir mes ateliers</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

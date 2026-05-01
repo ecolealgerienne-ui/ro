@@ -8,6 +8,7 @@ import { AlertsList, type Alert } from '@/components/dashboard/alerts-list';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { MiniGantt } from '@/components/dashboard/mini-gantt';
 import { ProgressiveOnboardingBanner } from '@/components/dashboard/progressive-onboarding-banner';
+import { ApiError } from '@/lib/api/client';
 import { useOrders, useSolveJobs, useVersions, useWorkshop } from '@/lib/api/hooks';
 
 export default function DashboardPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,11 +22,31 @@ export default function DashboardPage({ params }: { params: Promise<{ id: string
     return <div className="p-8 text-slate-500">Chargement…</div>;
   }
   if (workshopQuery.isError || !workshopQuery.data) {
+    const err = workshopQuery.error;
+    const isNotFound = err instanceof ApiError && err.status === 404;
     return (
       <div className="p-8">
         <Card>
-          <CardContent className="p-6 text-rose-700">
-            Workshop introuvable. Backend injoignable ou ID invalide.
+          <CardContent className="space-y-4 p-6">
+            {isNotFound ? (
+              <>
+                <p className="text-slate-700">
+                  <strong>Cet atelier n&apos;existe plus.</strong> Il a peut-être été supprimé ou la
+                  base a été réinitialisée (script <code>seed_via_api.py</code>).
+                </p>
+                <p className="text-sm text-slate-500">
+                  ID demandé : <code>{id}</code>
+                </p>
+              </>
+            ) : (
+              <p className="text-rose-700">
+                Backend injoignable. Vérifie que <code>npm run start:dev</code> tourne dans{' '}
+                <code>backend/</code>.
+              </p>
+            )}
+            <Button asChild size="sm">
+              <Link href="/">← Voir mes ateliers</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
