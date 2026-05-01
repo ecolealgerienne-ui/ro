@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertsList, type Alert } from '@/components/dashboard/alerts-list';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { MiniGantt } from '@/components/dashboard/mini-gantt';
+import { ProgressiveOnboardingBanner } from '@/components/dashboard/progressive-onboarding-banner';
 import { useOrders, useSolveJobs, useVersions, useWorkshop } from '@/lib/api/hooks';
 
 export default function DashboardPage({ params }: { params: Promise<{ id: string }> }) {
@@ -161,6 +162,8 @@ export default function DashboardPage({ params }: { params: Promise<{ id: string
           }
         />
       </section>
+
+      <ProgressiveOnboardingBanner workshopCreatedAt={workshop.createdAt} />
 
       <AlertsList alerts={alerts} />
 

@@ -24,9 +24,16 @@ export default function HomePage() {
 
       <section className="mb-10">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Vos ateliers</CardTitle>
-            <CardDescription>Sélectionnez un atelier pour ouvrir son dashboard.</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div>
+              <CardTitle className="text-lg">Vos ateliers</CardTitle>
+              <CardDescription>
+                Sélectionnez un atelier pour ouvrir son dashboard.
+              </CardDescription>
+            </div>
+            <Button asChild size="sm">
+              <Link href="/onboarding">+ Nouvel atelier</Link>
+            </Button>
           </CardHeader>
           <CardContent>
             {workshopsQuery.isLoading && <div className="text-slate-500">Chargement…</div>}
@@ -36,9 +43,16 @@ export default function HomePage() {
               </div>
             )}
             {workshopsQuery.data?.length === 0 && (
-              <div className="text-slate-600">
-                Aucun atelier configuré. Crée-en un via l&apos;API ou attends la Phase 5 J7
-                (onboarding).
+              <div className="space-y-3 py-6 text-center">
+                <div className="text-4xl">🏭</div>
+                <div className="font-medium text-slate-900">Aucun atelier configuré</div>
+                <div className="text-sm text-slate-600">
+                  Lance l&apos;onboarding (15 questions essentielles, ~8 min) pour créer ton premier
+                  atelier.
+                </div>
+                <Button asChild>
+                  <Link href="/onboarding">Démarrer l&apos;onboarding →</Link>
+                </Button>
               </div>
             )}
             <ul className="divide-y">
