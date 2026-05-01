@@ -6,6 +6,7 @@ import { MachinesModule } from './machines/machines.module';
 import { OrdersModule } from './orders/orders.module';
 import { PreflightSessionsModule } from './preflight-sessions/preflight-sessions.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { SchedulesModule } from './schedules/schedules.module';
 import { SolveJobsModule } from './solve-jobs/solve-jobs.module';
 import { VersionsModule } from './versions/versions.module';
 import { WorkshopsModule } from './workshops/workshops.module';
@@ -25,6 +26,7 @@ import { WorkshopsModule } from './workshops/workshops.module';
     OrdersModule,
     SolveJobsModule,
     PreflightSessionsModule,
+    SchedulesModule,
   ],
 })
 export class AppModule {}

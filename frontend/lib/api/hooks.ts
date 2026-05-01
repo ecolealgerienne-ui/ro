@@ -1,9 +1,10 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type {
   OrderListItem,
+  Schedule,
   SolveJob,
   VersionListItem,
   WorkshopDetail,
@@ -34,6 +35,18 @@ export const useOrders = (workshopId: string | undefined) =>
     enabled: !!workshopId,
   });
 
+// ---------- Schedule ----------
+
+export const useSchedule = (workshopId: string | undefined, versionId?: string) =>
+  useQuery({
+    queryKey: ['workshops', workshopId, 'schedule', versionId ?? 'active'],
+    queryFn: () =>
+      api.get<Schedule | null>(
+        `/workshops/${workshopId}/schedule${versionId ? `?versionId=${versionId}` : ''}`,
+      ),
+    enabled: !!workshopId,
+  });
+
 // ---------- Versions ----------
 
 export const useVersions = (workshopId: string | undefined) =>
@@ -59,3 +72,19 @@ export const useSolveJobs = (workshopId: string | undefined) =>
       return false;
     },
   });
+
+/**
+ * Lance un solve. Le worker Python le récupèrera dans les 2 s via DB-as-queue.
+ * On invalide les caches solve-jobs + schedule pour rafraîchir l'UI.
+ */
+export const useTriggerSolve = (workshopId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (config?: { time_budgets_s?: number[]; num_workers?: number }) =>
+      api.post<SolveJob>(`/workshops/${workshopId}/solve-jobs`, { config: config ?? {} }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['workshops', workshopId, 'solve-jobs'] });
+      void qc.invalidateQueries({ queryKey: ['workshops', workshopId, 'schedule'] });
+    },
+  });
+};

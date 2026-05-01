@@ -129,6 +129,31 @@ export interface SolveJob {
   updatedAt: string;
 }
 
+// ---------- Schedule (résultat solve) ----------
+
+/**
+ * Une affectation d'opération dans un planning solvé.
+ * V1 : indices entiers (snake_case côté Python, mappé tel-quel par le worker
+ * dans `assignments` JSON).
+ */
+export interface ScheduleAssignment {
+  job_id: number;
+  sequence_idx: number;
+  machine_id: number;
+  start: number;
+  end: number;
+}
+
+export interface Schedule {
+  id: string;
+  versionId: string;
+  versionNumber: number;
+  versionIsActive: boolean;
+  makespanMin: number;
+  assignments: ScheduleAssignment[];
+  createdAt: string;
+}
+
 // ---------- Health ----------
 
 export interface HealthStatus {
