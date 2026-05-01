@@ -96,7 +96,8 @@ export default function GanttPage({ params }: { params: Promise<{ id: string }> 
           <Button
             size="sm"
             onClick={() => triggerSolve.mutate(undefined)}
-            disabled={!!runningJob || triggerSolve.isPending}
+            disabled={!!runningJob || triggerSolve.isPending || orders.length === 0}
+            title={orders.length === 0 ? 'Aucun OF à planifier — importe d\'abord un CSV' : undefined}
           >
             {triggerSolve.isPending ? 'Lancement…' : 'Replanifier'}
           </Button>
@@ -127,7 +128,11 @@ export default function GanttPage({ params }: { params: Promise<{ id: string }> 
                 dans les 2 s, et le résultat s&apos;affichera ici dès qu&apos;il aura fini.
               </p>
             </div>
-            <Button onClick={() => triggerSolve.mutate(undefined)} disabled={!!runningJob}>
+            <Button
+              onClick={() => triggerSolve.mutate(undefined)}
+              disabled={!!runningJob || orders.length === 0}
+              title={orders.length === 0 ? 'Importe d\'abord des OFs' : undefined}
+            >
               Lancer le premier solve →
             </Button>
             {orders.length === 0 && (
