@@ -25,23 +25,30 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ```
 ro/
-├── specs-fonctionnelles-v3.md
-├── specs-techniques-v3.md
-├── specs-poc-scripts-v1.md
-├── v0-status.md
-├── CONTRIBUTING.md
-├── .gitignore
-├── .gitattributes
-├── .pre-commit-config.yaml
-├── poc-scheduler/        # Phase 0 — POC OR-Tools
-├── solver-service/       # Phases 1-3 — microservice Python (CP-SAT + agents LLM via tool use Claude API)
-├── backend/              # Phase 4 — NestJS API
-├── frontend/             # Phase 5 — Next.js chef d'atelier
-├── pwa/                  # Phase 6 — PWA opérateur
-└── infra/                # Phase 7 — Docker Compose, monitoring, déploiement
+├── README.md                              # vue d'ensemble (point d'entrée)
+├── CONTRIBUTING.md                        # ce fichier
+├── v0-status.md                           # tracker structuré par étape
+├── phase-{0,1,2,3,4}-report.md            # rapports narratifs par phase
+├── specs-fonctionnelles-v3.md             # spec produit
+├── specs-techniques-v3.md                 # spec architecture
+├── specs-poc-scripts-v1.md                # spec scripts POC
+├── guide-entretiens-decouverte-phase0.md
+├── .gitignore  .gitattributes  .pre-commit-config.yaml
+│
+├── poc-scheduler/        # Phases 0-3 — moteur Python (CP-SAT + agents LLM)
+│                          #   + scripts d'intégration Phase 4 (db_worker, preflight_service)
+├── backend/               # Phase 4 — NestJS API + Prisma + Postgres
+├── mockups/               # Phase 5 préparation — UX HTML statique (jetable)
+├── frontend/              # Phase 5 — Next.js chef d'atelier (à créer)
+├── pwa/                   # Phase 6 — PWA opérateur (à créer)
+└── infra/                 # Phase 7 — Docker Compose, monitoring, déploiement
 ```
 
-Les dossiers sont créés au fur et à mesure des phases.
+Les dossiers sont créés au fur et à mesure des phases. **Note Phase 1-3** : le
+microservice Python (CP-SAT + agents LLM) reste dans `poc-scheduler/`, il n'y a
+pas eu de scission `solver-service/` séparé. La Phase 4 a ajouté les scripts
+d'intégration backend (`scripts/db_worker.py`, `scripts/preflight_service.py`)
+sous `poc-scheduler/scripts/`.
 
 ---
 
@@ -150,45 +157,79 @@ Hooks actifs :
 - Docstrings style Google sur fonctions publiques
 - Tests `pytest` — couverture > 80% sur modules critiques
 
-### TypeScript / JS
-- `eslint` + `prettier`
-- `tsc --noEmit` sans warning
-- Tests `vitest` ou `jest`
+### TypeScript / JS (backend NestJS)
+- `eslint` + `prettier` (configs dans `backend/`)
+- `tsc --noEmit` sans warning (scripts `npm run typecheck`)
+- Tests `jest` + `supertest` pour les e2e (`npm run test:e2e`)
+- Strict mode TypeScript : `noImplicitAny`, `strictNullChecks`,
+  `forceConsistentCasingInFileNames`
+- DTO via `class-validator` + `ValidationPipe` global avec
+  `whitelist: true, forbidNonWhitelisted: true` (équivalent Pydantic
+  `extra="forbid"` côté API)
+- Pas de `any` non justifié — préférer `unknown` + narrowing
 
 ### SQL / migrations
-- Migrations Prisma versionnées
+- Migrations Prisma versionnées (`backend/prisma/migrations/`)
 - Pas de migration destructive sans procédure de rollback
+- Naming DB : tables `snake_case` au pluriel (`workshops`, `solve_jobs`),
+  colonnes `snake_case` mappées via `@map()` aux propriétés `camelCase` Prisma
+- IDs : UUID v4 (`@db.Uuid`) + indices entiers métier (`machine_id_int`,
+  `job_id_int`) pour cohérence avec l'engine Python (cf. §8)
 
 ---
 
 ## 8. Architecture multi-verticale (poc-scheduler/src)
 
-Le code applicatif est séparé en deux strates :
+Le code applicatif est séparé en deux strates : **engine générique** et
+**verticales métier**. Pattern audité 11 fois consécutives (verticalité tenue
+à 92 %, audit Sprint 1).
 
 ```
 poc-scheduler/src/
-├── core/           # Moteur générique (CP-SAT, modèles, patterns, scoring, simulation)
-│   ├── models.py
-│   ├── pattern.py / patterns.py
-│   ├── solver.py
+├── core/                     # Moteur générique (vertical-agnostic)
+│   ├── models.py             # WorkshopInstance + validate_time_period helper
+│   ├── pattern.py / patterns.py     # ABC Pattern + 7 classes
+│   ├── solver.py             # JSSPSolver, validate_schedule
 │   ├── scoring.py            # Phase 2.2 — score de confiance générique
-│   └── simulation.py         # Phase 2.3 — simulation opérationnelle générique
-├── preflight/      # Pre-flight CSV générique (vertical-agnostic)
-├── loaders/        # Loaders génériques (Taillard, runners benchmark)
+│   ├── simulation.py         # Phase 2.3 — simulation opérationnelle générique
+│   ├── circuit_breaker.py    # Phase 2.4 — circuit breaker INFEASIBLE
+│   ├── pipeline.py           # Phase 2.5 — pipeline complet
+│   ├── soft_constraints.py   # Phase 1.6 — SoftPenaltyVar + WeightedObjective
+│   ├── objectives.py         # Phase 1.2 — CompositeObjectiveSpec
+│   ├── replanification.py    # Phase 1.4 — FreezeSpec + SolutionHintSpec
+│   ├── clustering.py         # Phase 1.7 — agglomerative_cluster
+│   ├── mis.py                # Phase 1.8 — extract_mis_approximate
+│   └── snapshot_bridge.py    # Phase 4 J4 — JSON Prisma ↔ WorkshopInstance
+├── preflight/                # Pre-flight CSV générique (vertical-agnostic)
+├── loaders/                  # Loaders génériques (Taillard, benchmark)
+├── llm/                      # Couche LLM générique (provider, parsing)
+├── agents/                   # Base abstraite des agents LLM
 └── verticals/
     ├── __init__.py
-    └── mech_workshop/
-        ├── distributions.py      # types machine, matières, opérations
-        ├── generator.py          # générateur d'ateliers synthétiques
-        ├── adapter.py            # SyntheticWorkshop → WorkshopInstance
-        ├── preflight_config.py   # MECH_COLUMN_PATTERNS, MECH_REQUIRED_*
-        ├── scoring_config.py     # MECH_CONFIDENCE_WEIGHTS
-        └── simulation_config.py  # MECH_SIMULATION_THRESHOLDS
+    └── mech_workshop/        # Verticale n°1 : sous-traitance mécanique
+        ├── distributions.py
+        ├── generator.py / adapter.py
+        ├── preflight_config.py     # MECH_COLUMN_PATTERNS, MECH_REQUIRED_*
+        ├── scoring_config.py       # MECH_CONFIDENCE_WEIGHTS
+        ├── simulation_config.py    # MECH_SIMULATION_THRESHOLDS
+        ├── replanification_config.py  # MECH_TIER_WEIGHTS (1.5)
+        ├── clustering.py           # order_distance + cluster_orders_to_families
+        ├── soft_translators.py     # 6 translators NL → CP-SAT
+        ├── prompts/                # 5 prompts + 2 schémas (markdown)
+        └── agents/                 # 5 agents Phase 3 (3.4-3.8)
 ```
+
+Les **scripts d'intégration backend** (`scripts/db_worker.py`,
+`scripts/preflight_service.py`) consomment l'engine + une verticale (V1 :
+`mech_workshop`). Ils sont eux-mêmes vertical-agnostic dans leur logique
+(SQL + HTTP + I/O), la verticale est sélectionnée à l'instanciation. À
+l'arrivée d'une 2ᵉ verticale, on choisira via discriminant
+`Workshop.metadata` ou colonne dédiée `vertical_kind`.
 
 **Pattern engine ↔ vertical** : l'engine fournit le **mécanisme** (calcul,
 algorithme), la verticale fournit la **calibration** (poids, seuils, listes
-canoniques). Appliqué pour preflight, scoring, simulation, golden cases.
+canoniques). Appliqué pour preflight, scoring, simulation, clustering,
+replanification, MIS, soft constraints, golden cases.
 
 ### Règles d'imports (à respecter strictement)
 
@@ -222,7 +263,13 @@ canoniques). Appliqué pour preflight, scoring, simulation, golden cases.
     | grep -v "$(basename $(dirname %))"
 ```
 
-(Ces checks seront automatisés via pre-commit en Phase 2.)
+Audit étendu (Sprint 1, post-Phase 4) : pas seulement les imports, mais aussi
+les **fuites sémantiques dans les docstrings** de l'engine. Cibles à éviter :
+mention `mech_workshop` dans `src/core/`, terminologie métier hors-engine
+(« chef d'atelier », « OF », « atelier ») dans les commentaires de
+mécanismes universels.
+
+(Ces checks seront automatisés via pre-commit en Phase 7 sécurité prod.)
 
 ---
 
