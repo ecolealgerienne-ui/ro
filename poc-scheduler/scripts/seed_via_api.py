@@ -300,6 +300,104 @@ def _seed_showcase_workshop(api: ApiClient) -> dict[str, Any]:
 
 
 # =====================================================================
+# S3 — Stress mode : N ateliers paramétriques via générateur synthétique
+# =====================================================================
+
+
+def _seed_stress_workshop(api: ApiClient, *, idx: int, seed: int) -> dict[str, Any]:
+    """Crée un atelier paramétrique via le générateur méca synthétique.
+
+    Petit gabarit (5-6 machines, 20-30 jobs) pour tester la montée en charge
+    multi-tenant simulée sans saturer le solveur. Réexerce les mêmes endpoints
+    que la vitrine.
+    """
+    # Import différé : générateur lourd (pandas, numpy), pas nécessaire en mode reset.
+    from src.verticals.mech_workshop.generator import GenerationParams, generate_workshop
+
+    params = GenerationParams(
+        n_machines_min=5,
+        n_machines_max=6,
+        n_operators_min=4,
+        n_operators_max=5,
+        n_jobs_min=20,
+        n_jobs_max=30,
+        operations_per_job_min=1,
+        operations_per_job_max=2,
+        seed=seed,
+    )
+    synth = generate_workshop(params)
+
+    name = f"Atelier stress #{idx + 1} (seed={seed})"
+    body = {
+        "name": name,
+        "city": "Synthétique",
+        "shiftStart": 480,
+        "shiftEnd": 480 + params.daily_work_minutes,
+        "workdays": list(range(1, params.days_per_week + 1)),
+        "nOperators": len(synth.operators),
+    }
+    workshop = api.post("/workshops", json_body=body)
+    wid = workshop["id"]
+
+    # --- Machines ---
+    machines_by_int: dict[int, dict[str, Any]] = {}
+    for m in synth.machines:
+        created = api.post(
+            f"/workshops/{wid}/machines",
+            json_body={
+                "name": m.name,
+                "type": m.machine_type,
+                "machineIdInt": m.machine_id,
+            },
+        )
+        machines_by_int[m.machine_id] = created
+
+    # --- Clients : déduplique sur le nom ---
+    client_names = sorted({o.client for o in synth.orders})
+    clients_by_name: dict[str, dict[str, Any]] = {}
+    for cname in client_names:
+        # tier = celui du premier ordre rencontré pour ce client
+        tier = next(o.client_tier for o in synth.orders if o.client == cname)
+        c = api.post(
+            f"/workshops/{wid}/clients",
+            json_body={"name": cname, "tier": tier},
+        )
+        clients_by_name[cname] = c
+
+    # --- Ordres : 1ère machine compatible par op (V1 simplifiée). ---
+    n_orders = 0
+    for synth_order in synth.orders:
+        ops_dto = [
+            {
+                "sequenceIdx": op.sequence_idx,
+                "machineId": machines_by_int[op.compatible_machine_ids[0]]["id"],
+                "durationMin": op.estimated_duration_min,
+            }
+            for op in synth_order.operations
+        ]
+        api.post(
+            f"/workshops/{wid}/orders",
+            json_body={
+                "clientId": clients_by_name[synth_order.client]["id"],
+                "orderRef": synth_order.order_id,
+                "partRef": f"{synth_order.material} part",
+                "deadline": synth_order.deadline.isoformat(),
+                "operations": ops_dto,
+            },
+        )
+        n_orders += 1
+
+    log.info(
+        "  ✓ %s : %d machines, %d clients, %d OFs",
+        name,
+        len(machines_by_int),
+        len(clients_by_name),
+        n_orders,
+    )
+    return {"workshop": workshop, "n_orders": n_orders}
+
+
+# =====================================================================
 # S1 — cmd_seed (orchestre S2-S5)
 # =====================================================================
 
@@ -318,7 +416,11 @@ def cmd_seed(api: ApiClient, *, stress: int = 0) -> int:
     )
 
     if stress > 0:
-        log.warning("S3 stress mode (n=%d) : non implémenté (à venir)", stress)
+        log.info("=== Stress mode : %d ateliers paramétriques ===", stress)
+        for i in range(stress):
+            _seed_stress_workshop(api, idx=i, seed=1000 + i)
+        log.info("✓ %d ateliers stress générés", stress)
+
     log.warning("S4 fixtures CSV preflight : non implémenté (à venir)")
     log.warning("S5 trigger solve + wait : non implémenté (à venir)")
     return 0
